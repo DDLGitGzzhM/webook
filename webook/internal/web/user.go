@@ -3,9 +3,11 @@ package web
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
@@ -72,12 +74,22 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "登录失败 : %s", err.Error())
 		return
 	}
-	sess := sessions.Default(ctx)
-	sess.Set("userId", user.Id)
-	sess.Options(sessions.Options{
-		MaxAge: 20,
-	})
-	sess.Save()
+
+	userClaims := UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+		UserId: user.Id,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
+	tokenStr, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		ctx.String(http.StatusOK, "登录失败 : %s", err.Error())
+		return
+	}
+
+	ctx.Header("x-jwt-token", tokenStr)
 	ctx.String(http.StatusOK, "登录成功")
 }
 
@@ -86,5 +98,11 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "profile")
+	uid := ctx.GetInt64("userId")
+	ctx.String(http.StatusOK, strconv.FormatInt(uid, 10))
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	UserId int64
 }

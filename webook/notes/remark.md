@@ -32,3 +32,17 @@ domain 层：领域对象
 3. Session Id可以放在哪 ？这个问题 你要记得提起Cookie 禁用的问题
 4. 用户密码加密算法有什么注意事项？你用的什么
 5. 怎么做登陆校验？核心是 GIN 的middleware
+
+使用 JWT 的优缺点
+
+和Session 比起来，优点
+1. 不依赖第三方存储 
+2. 适合在分布式环境下使用
+3. 提高性能
+缺点 ：
+1. 对加密依赖非常大，比Session 容易泄密
+
+
+基本思路就是
+你在JWT里面存储你的userId，然后用UserId来组成Key
+然后用key去查Redis里面的session数据

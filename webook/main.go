@@ -49,6 +49,7 @@ func initWeb() *gin.Engine {
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
+		ExposeHeaders:    []string{"x-jwt-token"},
 	}))
 
 	store, err := redis.NewStore(16, "tcp", "localhost:6380",
