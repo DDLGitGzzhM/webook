@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
@@ -8,6 +10,8 @@ import (
 	mysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
+	redisv9 "github.com/redis/go-redis/v9"
+	"webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
@@ -57,6 +61,10 @@ func initWeb() *gin.Engine {
 	if err != nil {
 		panic(err)
 	}
+	redisClint := redisv9.NewClient(&redisv9.Options{
+		Addr: "localhost:6380",
+	})
+	server.Use(ratelimit.NewBuilder(redisClint, 10*time.Second, 100).Build())
 	server.Use(sessions.Sessions("session", store))
 	server.Use(middleware.NewLoginMiddlewareBuilder().Build())
 

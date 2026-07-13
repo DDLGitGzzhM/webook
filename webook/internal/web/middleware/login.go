@@ -48,6 +48,11 @@ func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
+		if claims.UserAgents != ctx.Request.UserAgent() {
+			ctx.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
 		if claims.ExpiresAt.Sub(time.Now()) < time.Second*50 {
 			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
 			tokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("secret"))

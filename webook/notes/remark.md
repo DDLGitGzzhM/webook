@@ -46,3 +46,15 @@ domain 层：领域对象
 基本思路就是
 你在JWT里面存储你的userId，然后用UserId来组成Key
 然后用key去查Redis里面的session数据
+
+todo
+redis上写完一个分布式锁
+
+为 gin 插件实现限流插件包含
+1. 单机限流
+   - 令牌桶算法
+   - 漏桶算法
+   - 滑动窗口算法
+   - 固定窗口算法
+2. 基于 Redis 限流
+3. 基于 Redis 的IP限流

@@ -79,7 +79,8 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
-		UserId: user.Id,
+		UserId:     user.Id,
+		UserAgents: ctx.Request.UserAgent(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
@@ -104,5 +105,6 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 
 type UserClaims struct {
 	jwt.RegisteredClaims
-	UserId int64
+	UserId     int64
+	UserAgents string
 }
