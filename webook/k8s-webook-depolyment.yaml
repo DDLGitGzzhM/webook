@@ -1,0 +1,25 @@
+# apiVersion 确定怎么解读配置
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webook
+# spec 规格说明
+spec:
+# 副本数量 3个 pods
+  replicas: 3
+# selector 筛选器，找到我应该管理哪3个
+  selector:
+    matchLabels:
+      app: webook
+# template 我应该怎么创建每个 pods
+  template:
+    metadata:
+        labels:
+            app: webook
+# pods 的具体信息
+    spec:
+      containers:
+        - name: webook
+          image: gzm/webook:v0.0.5
+          ports:
+            - containerPort: 8080

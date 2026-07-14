@@ -58,3 +58,8 @@ redis上写完一个分布式锁
    - 固定窗口算法
 2. 基于 Redis 限流
 3. 基于 Redis 的IP限流
+
+GOOS=linux GOARCH=amd64 go build --tags=k8s -o webook .
+docker build -t gzm/webook:v0.0.1 .
+kubectl delete deployment webook     
+kubectl apply -f k8s-webook-service.yaml  

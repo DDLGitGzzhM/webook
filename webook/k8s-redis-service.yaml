@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webook-redis
+spec:
+  selector:
+    app: webook-redis
+  ports:
+    - protocol: TCP
+  # service 本身的 redis
+      port: 11479
+  # Redis 默认端口
+      targetPort: 6379
+    # nodePort 集群外部访问用的端口
+      nodePort: 30003
+  type: NodePort

@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm"
 
 	redisv9 "github.com/redis/go-redis/v9"
+
+	"webook/webook/config/config"
 	"webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/dao"
@@ -24,11 +26,15 @@ func main() {
 	u := initUser(db)
 	server := initWeb()
 	u.RegisterRoutes(server)
+	//server := gin.Default()
+	//server.GET("/hello", func(ctx *gin.Context) {
+	//	ctx.JSON(200, "你好 k8s")
+	//})
 	server.Run(":8080")
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:13316)/webook"))
+	db, err := gorm.Open(mysql.Open(config.Config.Db.DSN))
 	if err != nil {
 		panic(err)
 	}
@@ -56,13 +62,13 @@ func initWeb() *gin.Engine {
 		ExposeHeaders:    []string{"x-jwt-token"},
 	}))
 
-	store, err := redis.NewStore(16, "tcp", "localhost:6380",
+	store, err := redis.NewStore(16, "tcp", config.Config.Redis.Addr,
 		"", "", []byte("7u4hhBQpHdT0Mq2R"), []byte("j6yMxCN73DDpjDdp"))
 	if err != nil {
 		panic(err)
 	}
 	redisClint := redisv9.NewClient(&redisv9.Options{
-		Addr: "localhost:6380",
+		Addr: config.Config.Redis.Addr,
 	})
 	server.Use(ratelimit.NewBuilder(redisClint, 10*time.Second, 100).Build())
 	server.Use(sessions.Sessions("session", store))
