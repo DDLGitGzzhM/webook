@@ -63,3 +63,7 @@ GOOS=linux GOARCH=amd64 go build --tags=k8s -o webook .
 docker build -t gzm/webook:v0.0.1 .
 kubectl delete deployment webook     
 kubectl apply -f k8s-webook-service.yaml  
+
+A 用到了 B, B 一定是接口
+A 用到了 B, B 一定是 A 的字段
+A 用到了 B， B 绝对不能初始化 B, 而是外部注入

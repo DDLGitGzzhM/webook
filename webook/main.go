@@ -7,11 +7,9 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	redisv9 "github.com/redis/go-redis/v9"
 	mysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
-	redisv9 "github.com/redis/go-redis/v9"
-
 	"webook/webook/config/config"
 	"webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/repository"

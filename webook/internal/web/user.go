@@ -1,9 +1,9 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -77,7 +77,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 
 	userClaims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
 		UserId:     user.Id,
 		UserAgents: ctx.Request.UserAgent(),
@@ -100,7 +100,17 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
 	uid := ctx.GetInt64("userId")
-	ctx.String(http.StatusOK, strconv.FormatInt(uid, 10))
+	userInfo, err := u.svc.Profile(ctx, uid)
+	if err != nil {
+		ctx.String(http.StatusOK, "获取用户信息失败 : %s", err.Error())
+		return
+	}
+	userInfoStr, err := json.Marshal(userInfo)
+	if err != nil {
+		ctx.String(http.StatusOK, "获取用户信息失败 : %s", err.Error())
+		return
+	}
+	ctx.String(http.StatusOK, string(userInfoStr))
 }
 
 type UserClaims struct {
