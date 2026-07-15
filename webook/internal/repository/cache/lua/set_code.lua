@@ -1,5 +1,5 @@
 -- 验证码在 redis 上的 key
-local key = keys[1]
+local key = KEYS[1]
 -- 一个验证码验证的次数
 local cntKey = key .. ":cnt"
 -- 你的验证码
@@ -15,7 +15,7 @@ elseif ttl == -2 or ttl < 540 then
     redis.call("set", key, val)
     redis.call("expire", key, 600)
     redis.call("set", cntKey, 3)
-    redis.call("expire",cntkey, 600)
+    redis.call("expire", cntKey, 600)
     return 0
 else
     return -1 -- 发送太频繁

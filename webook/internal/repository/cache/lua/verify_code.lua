@@ -10,6 +10,6 @@ elseif expectedCode == code then
     redis.call("del", key)
     return 0
 else
-    redis.call("decr", key .. ":cnt",-1 )
+    redis.call("decr", key .. ":cnt" )
     return -2
 end

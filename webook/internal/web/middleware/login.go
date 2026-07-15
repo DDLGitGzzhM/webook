@@ -21,7 +21,9 @@ func NewLoginMiddlewareBuilder() *LoginMiddlewareBuilder {
 func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.Request.URL.Path == "/users/signup" ||
-			ctx.Request.URL.Path == "/users/login" {
+			ctx.Request.URL.Path == "/users/login" ||
+			ctx.Request.URL.Path == "/users/login_sms/code/send" ||
+			ctx.Request.URL.Path == "/users/login_sms" {
 			ctx.Next()
 			return
 		}

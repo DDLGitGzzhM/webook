@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -15,12 +16,14 @@ import (
 
 // UserHandler 将所有跟用户有关的路由定义在 Handler 上
 type UserHandler struct {
-	svc *service.UserService
+	svc     *service.UserService
+	codeSvc *service.CodeService
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	return &UserHandler{
-		svc: svc,
+		svc:     svc,
+		codeSvc: codeSvc,
 	}
 }
 
@@ -30,7 +33,38 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login", u.Login)
 	ug.POST("/edit", u.Edit)
 	ug.GET("/profile", u.Profile)
+	ug.POST("/login_sms/code/send", u.SendLoginSMSCode)
+	ug.POST("/login_sms", u.LoginSMS)
+
 }
+
+func (u *UserHandler) LoginSMS(ctx *gin.Context) {
+
+}
+
+func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	const biz = "login"
+	type SendLoginSMSCodeReq struct {
+		Phone string `json:"phone"`
+	}
+	var req SendLoginSMSCodeReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	err := u.codeSvc.Send(ctx, biz, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  fmt.Sprintf("发送验证码失败: %s", err.Error()),
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "发送成功",
+	})
+}
+
 func (u *UserHandler) SignUp(ctx *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email"`

@@ -15,6 +15,7 @@ import (
 	"webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
+	smsTest "webook/webook/internal/service/sms/test"
 
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
@@ -24,7 +25,8 @@ import (
 
 func main() {
 	db := initDB()
-	u := initUser(db)
+	rbd := initRedis()
+	u := initUser(db, rbd)
 	server := initWeb()
 	u.RegisterRoutes(server)
 	//server := gin.Default()
@@ -45,17 +47,18 @@ func initDB() *gorm.DB {
 	}
 	return db
 }
-
-func initUser(db *gorm.DB) *web.UserHandler {
-	redisClint := redisv9.NewClient(&redisv9.Options{
+func initRedis() redisv9.Cmdable {
+	return redisv9.NewClient(&redisv9.Options{
 		Addr: config.Config.Redis.Addr,
 	})
-	userCache := cache.NewUserCache(redisClint)
+}
 
+func initUser(db *gorm.DB, rdb redisv9.Cmdable) *web.UserHandler {
+	userCache := cache.NewUserCache(rdb)
 	ud := dao.NewUserDAO(db)
 	repo := repository.NewUserRepository(ud, userCache)
 	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	u := web.NewUserHandler(svc, service.NewCodeService(repository.NewCodeRepository(cache.NewCodeCache(rdb)), smsTest.NewService()))
 	return u
 }
 
