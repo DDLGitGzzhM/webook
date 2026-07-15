@@ -2,6 +2,7 @@ local key = KEYS[1]
 --- 用户输入的 code
 local expectedCode = ARGV[1]
 local cnt = tonumber(redis.call("get", key .. ":cnt"))
+local code = redis.call("get", key)
 
 if cnt <= 0 then
     -- 说明 用户一直输入错误

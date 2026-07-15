@@ -39,7 +39,39 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 }
 
 func (u *UserHandler) LoginSMS(ctx *gin.Context) {
+	const biz = "login"
+	type Req struct {
+		Code  string `json:"code"`
+		Phone string `json:"phone"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 400,
+			Msg:  "请求参数错误",
+		})
+		return
+	}
+	verify, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  fmt.Sprintf("验证码校验失败: %s", err.Error()),
+		})
+		return
+	}
+	if !verify {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  fmt.Sprintf("错误的验证码 : %s", req.Code),
+		})
+		return
+	}
 
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "成功登陆",
+	})
 }
 
 func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
@@ -49,6 +81,10 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	}
 	var req SendLoginSMSCodeReq
 	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 400,
+			Msg:  "请求参数错误",
+		})
 		return
 	}
 	err := u.codeSvc.Send(ctx, biz, req.Phone)
@@ -56,6 +92,24 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  fmt.Sprintf("发送验证码失败: %s", err.Error()),
+		})
+		return
+	}
+	/*
+	 这里的 id 从哪里来？ 如果FindByPhone 我这个手机号会不会是一个新用户
+	*/
+	user, err := u.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  fmt.Sprintf("系统错误: %s", err.Error()),
+		})
+		return
+	}
+	if err = u.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  fmt.Sprintf("设置token失败: %s", err.Error()),
 		})
 		return
 	}
@@ -109,11 +163,18 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 
+	if err = u.setJWTToken(ctx, user.Id); err != nil {
+		return
+	}
+	ctx.String(http.StatusOK, "登录成功")
+}
+
+func (u *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
 	userClaims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
-		UserId:     user.Id,
+		UserId:     uid,
 		UserAgents: ctx.Request.UserAgent(),
 	}
 
@@ -121,11 +182,11 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	tokenStr, err := token.SignedString([]byte("secret"))
 	if err != nil {
 		ctx.String(http.StatusOK, "登录失败 : %s", err.Error())
-		return
+		return err
 	}
 
 	ctx.Header("x-jwt-token", tokenStr)
-	ctx.String(http.StatusOK, "登录成功")
+	return nil
 }
 
 func (u *UserHandler) Edit(ctx *gin.Context) {

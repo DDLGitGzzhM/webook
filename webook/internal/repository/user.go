@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"webook/webook/internal/domain"
 	"webook/webook/internal/repository/cache"
@@ -24,10 +26,7 @@ func NewUserRepository(dao *dao.UserDAO, cache *cache.UserCache) *UserRepository
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
-	return r.dao.Insert(ctx, &dao.User{
-		Email:    user.Email,
-		Password: user.PassWord,
-	})
+	return r.dao.Insert(ctx, r.domainToEntity(*user))
 }
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
@@ -35,11 +34,15 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 	if err != nil {
 		return domain.User{}, err
 	}
-	return domain.User{
-		Id:       u.Id,
-		Email:    u.Email,
-		PassWord: u.Password,
-	}, nil
+	return r.entityToDomain(u), nil
+}
+
+func (r *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+	u, err := r.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.entityToDomain(u), nil
 }
 
 func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
@@ -51,11 +54,7 @@ func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 	if err != nil {
 		return domain.User{}, err
 	}
-	u = domain.User{
-		Id:       ue.Id,
-		Email:    ue.Email,
-		PassWord: ue.Password,
-	}
+	u = r.entityToDomain(ue)
 	err = r.cache.SetUser(ctx, u)
 	if err != nil {
 		//打日志做监控
@@ -69,4 +68,24 @@ func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 				- 数据库限流
 			2. 选不加载 --- 用户体验差一点
 	*/
+}
+
+func (r *UserRepository) domainToEntity(u domain.User) *dao.User {
+	return &dao.User{
+		Id:       u.Id,
+		Email:    sql.NullString{String: u.Email, Valid: true},
+		Phone:    sql.NullString{String: u.Phone, Valid: true},
+		Password: u.PassWord,
+		Ctime:    u.Ctime.UnixMilli(),
+	}
+}
+
+func (r *UserRepository) entityToDomain(u *dao.User) domain.User {
+	return domain.User{
+		Id:       u.Id,
+		Email:    u.Email.String,
+		Phone:    u.Phone.String,
+		PassWord: u.Password,
+		Ctime:    time.UnixMilli(u.Ctime),
+	}
 }

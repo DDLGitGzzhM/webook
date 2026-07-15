@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -47,6 +48,15 @@ func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (*User, error
 	return &u, err
 }
 
+func (dao *UserDAO) FindByPhone(ctx context.Context, phone string) (*User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrUserNotFound
+	}
+	return &u, err
+}
+
 func (dao *UserDAO) FindById(ctx context.Context, id int64) (*User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
@@ -57,9 +67,10 @@ func (dao *UserDAO) FindById(ctx context.Context, id int64) (*User, error) {
 }
 
 type User struct {
-	Id       int64  `gorm:"primaryKey,autoIncrement"`
-	Email    string `gorm:"unique"`
+	Id       int64          `gorm:"primaryKey,autoIncrement"`
+	Email    sql.NullString `gorm:"unique"`
 	Password string
+	Phone    sql.NullString `gorm:"unique"` // 唯一索引允许有多个空值
 
 	Ctime int64
 	Utime int64

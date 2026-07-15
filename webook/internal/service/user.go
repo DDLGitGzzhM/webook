@@ -46,6 +46,24 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 	return u, nil
 }
 
+func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	u, err := svc.repo.FindByPhone(ctx, phone)
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		return u, err
+	}
+	err = svc.repo.Create(ctx, &domain.User{
+		Phone: phone,
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	u, err = svc.repo.FindByPhone(ctx, phone)
+	if err != nil {
+		return u, err
+	} // 这里会遇到主从延迟的问题
+	return u, nil
+}
+
 func (svc *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
 	u, err := svc.repo.FindById(ctx, id)
 	if err != nil {
