@@ -10,9 +10,12 @@ import (
 	redisv9 "github.com/redis/go-redis/v9"
 	mysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
 	"webook/webook/config/config"
 	"webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/repository"
+	"webook/webook/internal/repository/cache"
+
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
@@ -44,8 +47,13 @@ func initDB() *gorm.DB {
 }
 
 func initUser(db *gorm.DB) *web.UserHandler {
+	redisClint := redisv9.NewClient(&redisv9.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+	userCache := cache.NewUserCache(redisClint)
+
 	ud := dao.NewUserDAO(db)
-	repo := repository.NewUserRepository(ud)
+	repo := repository.NewUserRepository(ud, userCache)
 	svc := service.NewUserService(repo)
 	u := web.NewUserHandler(svc)
 	return u
