@@ -64,6 +64,6 @@ docker build -t gzm/webook:v0.0.1 .
 kubectl delete deployment webook     
 kubectl apply -f k8s-webook-service.yaml  
 
-A 用到了 B, B 一定是接口
-A 用到了 B, B 一定是 A 的字段
-A 用到了 B， B 绝对不能初始化 B, 而是外部注入
+A 用到了 B, B 一定是接口 ===》 保证面向接口
+A 用到了 B, B 一定是 A 的字段 ===〉 规避包变量，包方法
+A 用到了 B， B 绝对不能初始化 B, 而是外部注入 ===》保持依赖注入 和 依赖反转
