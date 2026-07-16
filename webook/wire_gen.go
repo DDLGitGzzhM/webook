@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
@@ -20,16 +21,20 @@ import (
 
 func InitWebServer() *gin.Engine {
 	cmdable := ioc.InitRedis()
-	v := ioc.InitMiddleWare(cmdable)
+	limitParam := ioc.InitLimitParam()
+	duration := limitParam.Interval
+	int2 := limitParam.Rate
+	redisSlideWindowLimiter := ratelimit.NewRedisSlideWindowLimiter(cmdable, duration, int2)
+	v := ioc.InitMiddleWare(redisSlideWindowLimiter)
 	db := ioc.InitDB()
-	userDAO := dao.NewUserDAO(db)
-	userCache := cache.NewUserCache(cmdable)
-	userRepository := repository.NewUserRepository(userDAO, userCache)
-	userService := service.NewUserService(userRepository)
-	codeCache := cache.NewCodeCache(cmdable)
-	codeRepository := repository.NewCodeRepository(codeCache)
+	gormUserDAO := dao.NewUserDAO(db)
+	redisUserCache := cache.NewUserCache(cmdable)
+	cacheUserRepository := repository.NewUserRepository(gormUserDAO, redisUserCache)
+	userService := service.NewUserService(cacheUserRepository)
+	redisCodeCache := cache.NewCodeCache(cmdable)
+	cacheCodeRepository := repository.NewCodeRepository(redisCodeCache)
 	smsService := ioc.InitSMSService()
-	codeService := service.NewCodeService(codeRepository, smsService)
+	codeService := service.NewCodeService(cacheCodeRepository, smsService)
 	userHandler := web.NewUserHandler(userService, codeService)
 	engine := ioc.InitGin(v, userHandler)
 	return engine
