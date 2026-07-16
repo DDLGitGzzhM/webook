@@ -13,11 +13,17 @@ import (
 var ErrUserDuplicateEmail = repository.ErrUserDuplicateEmail
 var ErrInvalidPassword = errors.New("邮箱/密码不对")
 
+type IUserService interface {
+	SignUp(ctx context.Context, u domain.User) error
+	Login(ctx context.Context, email string, password string) (domain.User, error)
+	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
+	Profile(ctx context.Context, id int64) (domain.User, error)
+}
 type UserService struct {
-	repo *repository.UserRepository
+	repo repository.UserRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
+func NewUserService(repo repository.UserRepository) *UserService {
 	return &UserService{
 		repo: repo,
 	}

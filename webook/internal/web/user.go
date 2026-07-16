@@ -16,11 +16,11 @@ import (
 
 // UserHandler 将所有跟用户有关的路由定义在 Handler 上
 type UserHandler struct {
-	svc     *service.UserService
-	codeSvc *service.CodeService
+	svc     service.IUserService
+	codeSvc service.ICodeService
 }
 
-func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
+func NewUserHandler(svc service.IUserService, codeSvc service.ICodeService) *UserHandler {
 	return &UserHandler{
 		svc:     svc,
 		codeSvc: codeSvc,

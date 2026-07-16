@@ -9,12 +9,17 @@ import (
 	"webook/webook/internal/service/sms"
 )
 
+type ICodeService interface {
+	Send(ctx context.Context, biz string, phone string) error
+	Verify(ctx context.Context, biz string, phone string, code string) (bool, error)
+}
+
 type CodeService struct {
-	repo   *repository.CodeRepository
+	repo   repository.CodeRepository
 	smsSvc sms.Service
 }
 
-func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
+func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) *CodeService {
 	return &CodeService{
 		repo:   repo,
 		smsSvc: smsSvc,
