@@ -37,6 +37,9 @@ func InitWebServer() *gin.Engine {
 		wire.Bind(new(service.ICodeService), new(*service.CodeService)),
 		web.NewUserHandler,
 
+		web.NewOAuth2WechatHandler,
+		ioc.InitWeChatService,
+
 		ratelimit.NewRedisSlideWindowLimiter,
 		wire.Bind(new(ratelimit.Limiter), new(*ratelimit.RedisSlideWindowLimiter)),
 

@@ -17,6 +17,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	FindByWechat(ctx context.Context, openId string) (domain.User, error)
 	FindById(ctx context.Context, id int64) (domain.User, error)
 }
 type CacheUserRepository struct {
@@ -51,6 +52,14 @@ func (r *CacheUserRepository) FindByPhone(ctx context.Context, phone string) (do
 	return r.entityToDomain(u), nil
 }
 
+func (r *CacheUserRepository) FindByWechat(ctx context.Context, openId string) (domain.User, error) {
+	u, err := r.dao.FindByWechat(ctx, openId)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.entityToDomain(u), nil
+}
+
 func (r *CacheUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
 	u, err := r.cache.GetUser(ctx, id)
 	if err == nil {
@@ -78,11 +87,13 @@ func (r *CacheUserRepository) FindById(ctx context.Context, id int64) (domain.Us
 
 func (r *CacheUserRepository) domainToEntity(u domain.User) *dao.User {
 	return &dao.User{
-		Id:       u.Id,
-		Email:    sql.NullString{String: u.Email, Valid: true},
-		Phone:    sql.NullString{String: u.Phone, Valid: true},
-		Password: u.PassWord,
-		Ctime:    u.Ctime.UnixMilli(),
+		Id:            u.Id,
+		Email:         sql.NullString{String: u.Email, Valid: true},
+		Phone:         sql.NullString{String: u.Phone, Valid: true},
+		Password:      u.PassWord,
+		WechatOpenID:  sql.NullString{String: u.OpenId, Valid: true},
+		WeChatUnionID: sql.NullString{String: u.UnionId, Valid: true},
+		Ctime:         u.Ctime.UnixMilli(),
 	}
 }
 
@@ -92,6 +103,10 @@ func (r *CacheUserRepository) entityToDomain(u *dao.User) domain.User {
 		Email:    u.Email.String,
 		Phone:    u.Phone.String,
 		PassWord: u.Password,
-		Ctime:    time.UnixMilli(u.Ctime),
+		WeChatInfo: domain.WeChatInfo{
+			OpenId:  u.WechatOpenID.String,
+			UnionId: u.WeChatUnionID.String,
+		},
+		Ctime: time.UnixMilli(u.Ctime),
 	}
 }

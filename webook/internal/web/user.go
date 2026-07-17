@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
@@ -18,6 +16,7 @@ import (
 type UserHandler struct {
 	svc     service.IUserService
 	codeSvc service.ICodeService
+	jwtHandler
 }
 
 func NewUserHandler(svc service.IUserService, codeSvc service.ICodeService) *UserHandler {
@@ -169,26 +168,6 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "登录成功")
 }
 
-func (u *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
-	userClaims := UserClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
-		},
-		UserId:     uid,
-		UserAgents: ctx.Request.UserAgent(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
-	tokenStr, err := token.SignedString([]byte("secret"))
-	if err != nil {
-		ctx.String(http.StatusOK, "登录失败 : %s", err.Error())
-		return err
-	}
-
-	ctx.Header("x-jwt-token", tokenStr)
-	return nil
-}
-
 func (u *UserHandler) Edit(ctx *gin.Context) {
 
 }
@@ -206,10 +185,4 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 		return
 	}
 	ctx.String(http.StatusOK, string(userInfoStr))
-}
-
-type UserClaims struct {
-	jwt.RegisteredClaims
-	UserId     int64
-	UserAgents string
 }

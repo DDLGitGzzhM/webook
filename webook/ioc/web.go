@@ -13,10 +13,11 @@ import (
 	"webook/webook/internal/web/middleware"
 )
 
-func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler) *gin.Engine {
+func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdl...)
 	hdl.RegisterRoutes(server)
+	oauth.RegisterRoutes(server)
 	return server
 }
 

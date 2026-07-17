@@ -19,6 +19,7 @@ type UserDao interface {
 	Insert(ctx context.Context, u *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByPhone(ctx context.Context, phone string) (*User, error)
+	FindByWechat(ctx context.Context, openId string) (*User, error)
 	FindById(ctx context.Context, id int64) (*User, error)
 }
 
@@ -64,6 +65,15 @@ func (dao *GormUserDAO) FindByPhone(ctx context.Context, phone string) (*User, e
 	return &u, err
 }
 
+func (dao *GormUserDAO) FindByWechat(ctx context.Context, openId string) (*User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("wechat_open_id = ?", openId).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrUserNotFound
+	}
+	return &u, err
+}
+
 func (dao *GormUserDAO) FindById(ctx context.Context, id int64) (*User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
@@ -78,6 +88,9 @@ type User struct {
 	Email    sql.NullString `gorm:"unique"`
 	Password string
 	Phone    sql.NullString `gorm:"unique"` // 唯一索引允许有多个空值
+
+	WeChatUnionID sql.NullString `gorm:"unique"`
+	WechatOpenID  sql.NullString `gorm:"unique"`
 
 	Ctime int64
 	Utime int64

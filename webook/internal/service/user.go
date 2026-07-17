@@ -17,6 +17,7 @@ type IUserService interface {
 	SignUp(ctx context.Context, u domain.User) error
 	Login(ctx context.Context, email string, password string) (domain.User, error)
 	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
+	FindOrCreateByWechat(ctx context.Context, weChatInfo domain.WeChatInfo) (domain.User, error)
 	Profile(ctx context.Context, id int64) (domain.User, error)
 }
 type UserService struct {
@@ -49,6 +50,25 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 	if err = bcrypt.CompareHashAndPassword([]byte(u.PassWord), []byte(password)); err != nil {
 		return u, ErrInvalidPassword
 	}
+	return u, nil
+}
+
+func (svc *UserService) FindOrCreateByWechat(ctx context.Context, weChatInfo domain.WeChatInfo) (domain.User, error) {
+	u, err := svc.repo.FindByWechat(ctx, weChatInfo.OpenId)
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		return u, err
+	}
+	u = domain.User{
+		WeChatInfo: weChatInfo,
+	}
+	err = svc.repo.Create(ctx, &u)
+	if err != nil {
+		return domain.User{}, err
+	}
+	u, err = svc.repo.FindByWechat(ctx, weChatInfo.OpenId)
+	if err != nil {
+		return u, err
+	} // 这里会遇到主从延迟的问题
 	return u, nil
 }
 
