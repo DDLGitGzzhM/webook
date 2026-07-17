@@ -25,14 +25,14 @@ func NewService(client *sms.Client, appId, signName string) *Service {
 	}
 }
 
-func (s Service) Send(ctx context.Context, tpl string, args []string, numbers ...string) error {
+func (s Service) Send(ctx context.Context, biz string, args []string, numbers ...string) error {
 	if numbers == nil {
 		return ErrorNumerEmpty
 	}
 	req := sms.NewSendSmsRequest()
 	req.SmsSdkAppId = s.appId
 	req.SignName = s.signName
-	req.TemplateId = &tpl
+	req.TemplateId = &biz
 
 	req.PhoneNumberSet = s.toStringPtrSlice(numbers)
 	req.TemplateParamSet = s.toStringPtrSlice(args)
