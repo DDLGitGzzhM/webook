@@ -14,6 +14,7 @@ import (
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
+	"webook/webook/internal/web/jwt"
 	"webook/webook/ioc"
 )
 
@@ -25,7 +26,8 @@ func InitWebServer() *gin.Engine {
 	duration := limitParam.Interval
 	int2 := limitParam.Rate
 	redisSlideWindowLimiter := ratelimit.NewRedisSlideWindowLimiter(cmdable, duration, int2)
-	v := ioc.InitMiddleWare(redisSlideWindowLimiter)
+	redisJwt := jwt.NewRedisJwt(cmdable)
+	v := ioc.InitMiddleWare(redisSlideWindowLimiter, redisJwt)
 	db := ioc.InitDB()
 	gormUserDAO := dao.NewUserDAO(db)
 	redisUserCache := cache.NewUserCache(cmdable)
@@ -35,9 +37,9 @@ func InitWebServer() *gin.Engine {
 	cacheCodeRepository := repository.NewCodeRepository(redisCodeCache)
 	smsService := ioc.InitSMSService(cmdable)
 	codeService := service.NewCodeService(cacheCodeRepository, smsService)
-	userHandler := web.NewUserHandler(userService, codeService)
+	userHandler := web.NewUserHandler(userService, codeService, redisJwt, cmdable)
 	wechatService := ioc.InitWeChatService()
-	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService)
+	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService, redisJwt)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler)
 	return engine
 }

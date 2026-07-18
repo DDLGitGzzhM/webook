@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 
 	ginxlimit "webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	"webook/webook/internal/pkg/ratelimit"
+	jwtHandler "webook/webook/internal/web/jwt"
 
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
@@ -22,7 +22,7 @@ func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2Wecha
 	return server
 }
 
-func InitMiddleWare(limit ratelimit.Limiter, cmd redis.Cmdable) []gin.HandlerFunc {
+func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:3000"},
@@ -30,7 +30,7 @@ func InitMiddleWare(limit ratelimit.Limiter, cmd redis.Cmdable) []gin.HandlerFun
 			AllowCredentials: true,
 			ExposeHeaders:    []string{"x-jwt-token", "x-refresh-token"},
 		}),
-		middleware.NewLoginMiddlewareBuilder(cmd).Build(),
+		middleware.NewLoginMiddlewareBuilder(jwt).Build(),
 		ginxlimit.NewBuilder(limit).Build(),
 	}
 }
