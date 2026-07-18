@@ -7,15 +7,13 @@ import (
 	"net/http"
 	"net/url"
 
-	uuid "github.com/lithammer/shortuuid/v4"
-
 	"webook/webook/internal/domain"
 )
 
 var redirectURL = url.PathEscape("http://127.0.0.1:8080/wechat/callback")
 
 type Service interface {
-	AuthURL(ctx context.Context) (string, error)
+	AuthURL(ctx context.Context, state string) (string, error)
 	VerifyCode(ctx context.Context, code, state string) (domain.WeChatInfo, error)
 }
 
@@ -33,9 +31,8 @@ func NewWeChatService(appId string, appSecret string) *WeChatService {
 	}
 }
 
-func (w *WeChatService) AuthURL(ctx context.Context) (string, error) {
+func (w *WeChatService) AuthURL(ctx context.Context, state string) (string, error) {
 	const urlPattern = "https://open.weixin.qq.com/connect/qrconnect?appid=%s&redirect_uri=%s&response_type=code&scope=snsapi_login&state=%s#wechat_redirect"
-	state := uuid.New()
 	return fmt.Sprintf(urlPattern, "appid", redirectURL, state), nil
 }
 
