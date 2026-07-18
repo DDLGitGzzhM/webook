@@ -3,5 +3,6 @@
   <component name="DataSourcePerFileMappings">
     <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/e79820d2-7a84-4f70-b4f6-675417992aa1/console.sql" value="e79820d2-7a84-4f70-b4f6-675417992aa1" />
     <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/e79820d2-7a84-4f70-b4f6-675417992aa1/console_1.sql" value="e79820d2-7a84-4f70-b4f6-675417992aa1" />
+    <file url="file://$PROJECT_DIR$/webook/script/mysql/init.sql" value="569e3679-60f8-4782-ba41-1e9391614007" />
   </component>
 </project>
