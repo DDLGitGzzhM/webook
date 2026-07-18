@@ -36,7 +36,7 @@ func InitWebServer() *gin.Engine {
 		service.NewCodeService,
 		wire.Bind(new(service.ICodeService), new(*service.CodeService)),
 		web.NewUserHandler,
-
+		web.NewJWTHandler,
 		web.NewOAuth2WechatHandler,
 		ioc.InitWeChatService,
 

@@ -13,17 +13,18 @@ import (
 )
 
 type OAuth2WechatHandler struct {
-	svc     wechat.Service
-	userSvc service.IUserService
-	jwtHandler
-	stateKey []byte
+	svc        wechat.Service
+	userSvc    service.IUserService
+	jwtHandler JwtHandler
+	stateKey   []byte
 }
 
-func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.IUserService) *OAuth2WechatHandler {
+func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.IUserService, handler JwtHandler) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
-		svc:      svc,
-		userSvc:  userSvc,
-		stateKey: []byte("stateKey"),
+		svc:        svc,
+		userSvc:    userSvc,
+		stateKey:   []byte("stateKey"),
+		jwtHandler: handler,
 	}
 }
 
@@ -115,13 +116,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 			})
 		return
 	}
-	err = h.setJWTToken(ctx, u.Id)
-	if err != nil {
-		ctx.JSON(http.StatusOK,
-			Result{
-				Code: 5,
-				Msg:  err.Error(),
-			})
+	if err = h.jwtHandler.setLoginToken(ctx, u.Id); err != nil {
 		return
 	}
 	ctx.JSON(http.StatusOK,
