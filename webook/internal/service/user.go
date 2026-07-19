@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"webook/webook/internal/domain"
+	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/repository"
 )
 
@@ -21,12 +22,14 @@ type IUserService interface {
 	Profile(ctx context.Context, id int64) (domain.User, error)
 }
 type UserService struct {
-	repo repository.UserRepository
+	repo   repository.UserRepository
+	logger logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
+func NewUserService(repo repository.UserRepository, logger logger.Logger) *UserService {
 	return &UserService{
-		repo: repo,
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -77,6 +80,7 @@ func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.
 	if !errors.Is(err, repository.ErrUserNotFound) {
 		return u, err
 	}
+	svc.logger.Info("用户未注册", logger.String("phone", phone))
 	err = svc.repo.Create(ctx, &domain.User{
 		Phone: phone,
 	})

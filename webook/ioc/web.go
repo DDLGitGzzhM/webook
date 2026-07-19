@@ -1,16 +1,18 @@
 package ioc
 
 import (
+	"context"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	"webook/webook/internal/pkg/ginx/middleware/logger"
 	ginxlimit "webook/webook/internal/pkg/ginx/middleware/ratelimit"
+	pkgLog "webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
-	jwtHandler "webook/webook/internal/web/jwt"
-
 	"webook/webook/internal/web"
+	jwtHandler "webook/webook/internal/web/jwt"
 	"webook/webook/internal/web/middleware"
 )
 
@@ -22,8 +24,14 @@ func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2Wecha
 	return server
 }
 
-func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler) []gin.HandlerFunc {
+func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.Logger) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
+		logger.NewMiddleWareBuilder(func(ctx context.Context, al *logger.Accesslog) {
+			log.Info("scall", pkgLog.Field{
+				Key:   "al",
+				Value: al,
+			})
+		}).Build(),
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:3000"},
 			AllowHeaders:     []string{"Content-Type", "Authorization"},

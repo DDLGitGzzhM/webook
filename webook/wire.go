@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 
+	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
@@ -41,6 +42,9 @@ func InitWebServer() *gin.Engine {
 		web.NewUserHandler,
 		web.NewOAuth2WechatHandler,
 		ioc.InitWeChatService,
+		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
+		ioc.InitLogger,
+		logger.NewZapLogger,
 
 		ratelimit.NewRedisSlideWindowLimiter,
 		wire.Bind(new(ratelimit.Limiter), new(*ratelimit.RedisSlideWindowLimiter)),

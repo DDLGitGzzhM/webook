@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
@@ -16,6 +17,10 @@ import (
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/jwt"
 	"webook/webook/ioc"
+)
+
+import (
+	_ "github.com/spf13/viper/remote"
 )
 
 // Injectors from wire.go:
@@ -27,12 +32,14 @@ func InitWebServer() *gin.Engine {
 	int2 := limitParam.Rate
 	redisSlideWindowLimiter := ratelimit.NewRedisSlideWindowLimiter(cmdable, duration, int2)
 	redisJwt := jwt.NewRedisJwt(cmdable)
-	v := ioc.InitMiddleWare(redisSlideWindowLimiter, redisJwt)
+	zapLogger := ioc.InitLogger()
+	loggerZapLogger := logger.NewZapLogger(zapLogger)
+	v := ioc.InitMiddleWare(redisSlideWindowLimiter, redisJwt, loggerZapLogger)
 	db := ioc.InitDB()
 	gormUserDAO := dao.NewUserDAO(db)
 	redisUserCache := cache.NewUserCache(cmdable)
 	cacheUserRepository := repository.NewUserRepository(gormUserDAO, redisUserCache)
-	userService := service.NewUserService(cacheUserRepository)
+	userService := service.NewUserService(cacheUserRepository, loggerZapLogger)
 	redisCodeCache := cache.NewCodeCache(cmdable)
 	cacheCodeRepository := repository.NewCodeRepository(redisCodeCache)
 	smsService := ioc.InitSMSService(cmdable)
