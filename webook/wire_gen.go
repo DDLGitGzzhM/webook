@@ -35,7 +35,7 @@ func InitWebServer() *gin.Engine {
 	zapLogger := ioc.InitLogger()
 	loggerZapLogger := logger.NewZapLogger(zapLogger)
 	v := ioc.InitMiddleWare(redisSlideWindowLimiter, redisJwt, loggerZapLogger)
-	db := ioc.InitDB()
+	db := ioc.InitDB(loggerZapLogger)
 	gormUserDAO := dao.NewUserDAO(db)
 	redisUserCache := cache.NewUserCache(cmdable)
 	cacheUserRepository := repository.NewUserRepository(gormUserDAO, redisUserCache)

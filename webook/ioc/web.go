@@ -33,7 +33,7 @@ func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.
 			})
 		}).Build(),
 		cors.New(cors.Config{
-			AllowOrigins:     []string{"http://localhost:3000"},
+			AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
 			AllowHeaders:     []string{"Content-Type", "Authorization"},
 			AllowCredentials: true,
 			ExposeHeaders:    []string{"x-jwt-token", "x-refresh-token"},
