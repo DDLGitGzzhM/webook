@@ -4,10 +4,11 @@
 //go:build !wireinject
 // +build !wireinject
 
-package main
+package startup
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/wire"
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
@@ -17,10 +18,6 @@ import (
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/jwt"
 	"webook/webook/ioc"
-)
-
-import (
-	_ "github.com/spf13/viper/remote"
 )
 
 // Injectors from wire.go:
@@ -47,6 +44,25 @@ func InitWebServer() *gin.Engine {
 	userHandler := web.NewUserHandler(userService, codeService, redisJwt, cmdable)
 	wechatService := ioc.InitWeChatService()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService, redisJwt)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler)
+	articleGormDao := dao.NewArticleGormDao(db)
+	cachedArticleRepository := repository.NewCachedArticleRepository(articleGormDao)
+	iArticleService := service.NewArticleService(cachedArticleRepository)
+	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
+
+func InitArticleHandler() *web.ArticleHandler {
+	zapLogger := ioc.InitLogger()
+	loggerZapLogger := logger.NewZapLogger(zapLogger)
+	db := ioc.InitDB(loggerZapLogger)
+	articleGormDao := dao.NewArticleGormDao(db)
+	cachedArticleRepository := repository.NewCachedArticleRepository(articleGormDao)
+	iArticleService := service.NewArticleService(cachedArticleRepository)
+	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
+	return articleHandler
+}
+
+// wire.go:
+
+var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)

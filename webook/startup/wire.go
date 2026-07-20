@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package main
+package startup
 
 import (
 	"github.com/gin-gonic/gin"
@@ -17,11 +17,15 @@ import (
 	"webook/webook/ioc"
 )
 
+var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
 		dao.NewUserDAO,
+		dao.NewArticleGormDao,
 		wire.Bind(new(dao.UserDao), new(*dao.GormUserDAO)),
+		wire.Bind(new(dao.ArticleDao), new(*dao.ArticleGormDao)),
 
 		cache.NewCodeCache,
 		wire.Bind(new(cache.CodeCache), new(*cache.RedisCodeCache)),
@@ -29,17 +33,22 @@ func InitWebServer() *gin.Engine {
 		wire.Bind(new(cache.UserCache), new(*cache.RedisUserCache)),
 
 		repository.NewUserRepository,
-		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
+		repository.NewCachedArticleRepository,
 		repository.NewCodeRepository,
+
+		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
 		wire.Bind(new(repository.CodeRepository), new(*repository.CacheCodeRepository)),
+		wire.Bind(new(repository.ArticleRepository), new(*repository.CachedArticleRepository)),
 
 		service.NewUserService,
+		service.NewArticleService,
 		wire.Bind(new(service.IUserService), new(*service.UserService)),
 		service.NewCodeService,
 		wire.Bind(new(service.ICodeService), new(*service.CodeService)),
 		jwtHandler.NewRedisJwt,
 		wire.Bind(new(jwtHandler.Handler), new(*jwtHandler.RedisJwt)),
 		web.NewUserHandler,
+		web.NewArticleHandler,
 		web.NewOAuth2WechatHandler,
 		ioc.InitWeChatService,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
@@ -56,4 +65,19 @@ func InitWebServer() *gin.Engine {
 		wire.FieldsOf(new(ioc.LimitParam), "Interval", "Rate"),
 	)
 	return new(gin.Engine)
+}
+
+func InitArticleHandler() *web.ArticleHandler {
+	wire.Build(
+		thirdProvider,
+		logger.NewZapLogger,
+		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
+		service.NewArticleService,
+		web.NewArticleHandler,
+		repository.NewCachedArticleRepository,
+		dao.NewArticleGormDao,
+		wire.Bind(new(repository.ArticleRepository), new(*repository.CachedArticleRepository)),
+		wire.Bind(new(dao.ArticleDao), new(*dao.ArticleGormDao)),
+	)
+	return &web.ArticleHandler{}
 }
