@@ -41,7 +41,7 @@ func (h *OAuth2WechatHandler) AuthUrl(ctx *gin.Context) {
 	url, err := h.svc.AuthURL(ctx, state)
 	if err != nil {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  err.Error(),
 			})
@@ -56,7 +56,7 @@ func (h *OAuth2WechatHandler) AuthUrl(ctx *gin.Context) {
 	tokenStr, err := token.SignedString([]byte("secret"))
 	if err != nil {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  err.Error(),
 			})
@@ -73,7 +73,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 	ck, err := ctx.Cookie("jwt-state")
 	if err != nil {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  err.Error(),
 			})
@@ -84,7 +84,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 	})
 	if err != nil || !token.Valid {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  "token 无效",
 			})
@@ -93,7 +93,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 
 	if sc.State != state {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  "state 无效",
 			})
@@ -103,7 +103,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 	info, err := h.svc.VerifyCode(ctx, code, state)
 	if err != nil {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  err.Error(),
 			})
@@ -111,7 +111,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 	u, err := h.userSvc.FindOrCreateByWechat(ctx, info)
 	if err != nil {
 		ctx.JSON(http.StatusOK,
-			Result{
+			Result[any]{
 				Code: 5,
 				Msg:  err.Error(),
 			})
@@ -121,7 +121,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK,
-		Result{
+		Result[any]{
 			Code: 0,
 			Msg:  "OK",
 		})
