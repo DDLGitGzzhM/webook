@@ -90,6 +90,80 @@ func (s *ArticleTestSuite) TestEdit() {
 				Data: 1,
 			},
 		},
+		{
+			name: "修改已有帖子，并保存",
+			before: func(t *testing.T) {
+				s.db.Create(&dao.Article{
+					Id:       2,
+					Title:    "修改帖子",
+					Content:  "我的内容",
+					AuthorId: 123,
+					Ctime:    100,
+					Utime:    100,
+				})
+			},
+			after: func(t *testing.T) {
+				var art dao.Article
+				err := s.db.Where("id=?", "2").First(&art).Error
+				require.Nil(t, err)
+				require.True(t, art.Utime > 100)
+				art.Utime = 0
+				require.Equal(t, art, dao.Article{
+					Id:       2,
+					Title:    "新的标题",
+					Content:  "新的内容",
+					AuthorId: 123,
+					Ctime:    100,
+				})
+			},
+			art: Article{
+				Id:      2,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Code: 0,
+				Msg:  "ok",
+				Data: 2,
+			},
+		},
+		{
+			name: "修改别人的文章",
+			before: func(t *testing.T) {
+				s.db.Create(&dao.Article{
+					Id:       3,
+					Title:    "修改帖子",
+					Content:  "我的内容",
+					AuthorId: 456,
+					Ctime:    100,
+					Utime:    100,
+				})
+			},
+			after: func(t *testing.T) {
+				var art dao.Article
+				err := s.db.Where("id=?", "3").First(&art).Error
+				require.Nil(t, err)
+				require.Equal(t, art, dao.Article{
+					Id:       3,
+					Title:    "修改帖子",
+					Content:  "我的内容",
+					AuthorId: 456,
+					Ctime:    100,
+					Utime:    100,
+				})
+			},
+			art: Article{
+				Id:      3,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Code: 5,
+				Msg:  "保存失败",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -127,6 +201,7 @@ func TestArticle(t *testing.T) {
 }
 
 type Article struct {
+	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }

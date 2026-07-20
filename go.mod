@@ -12,11 +12,11 @@ require (
 	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/samber/lo v1.53.0
-	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/spf13/viper/remote v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.3.93
+	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.48.0
 	gorm.io/driver/mysql v1.6.0
@@ -93,6 +93,7 @@ require (
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.93 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

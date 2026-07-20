@@ -1,7 +1,7 @@
 package web
 
-type Result[T any] struct {
+type Result struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
-	Data T      `json:"data"`
+	Data any    `json:"data"`
 }

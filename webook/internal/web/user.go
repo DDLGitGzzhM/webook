@@ -61,7 +61,7 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 	var req Req
 	if err := ctx.Bind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 400,
 			Msg:  "请求参数错误",
 		})
@@ -69,21 +69,21 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 	verify, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  fmt.Sprintf("验证码校验失败: %s", err.Error()),
 		})
 		return
 	}
 	if !verify {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  fmt.Sprintf("错误的验证码 : %s", req.Code),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, Result[any]{
+	ctx.JSON(http.StatusOK, Result{
 		Code: 0,
 		Msg:  "成功登陆",
 	})
@@ -96,7 +96,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	}
 	var req SendLoginSMSCodeReq
 	if err := ctx.Bind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 400,
 			Msg:  "请求参数错误",
 		})
@@ -104,7 +104,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	}
 	err := u.codeSvc.Send(ctx, biz, req.Phone)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  fmt.Sprintf("发送验证码失败: %s", err.Error()),
 		})
@@ -115,7 +115,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	*/
 	user, err := u.svc.FindOrCreate(ctx, req.Phone)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  fmt.Sprintf("系统错误: %s", err.Error()),
 		})
@@ -124,7 +124,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	if err = u.jwtHandler.SetLoginToken(ctx, user.Id); err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, Result[any]{
+	ctx.JSON(http.StatusOK, Result{
 		Code: 0,
 		Msg:  "发送成功",
 	})
@@ -201,7 +201,7 @@ func (u *UserHandler) RefreshToken(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	ctx.JSON(http.StatusOK, Result[any]{
+	ctx.JSON(http.StatusOK, Result{
 		Msg: "ok",
 	})
 }

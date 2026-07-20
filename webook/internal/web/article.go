@@ -25,14 +25,12 @@ func NewArticleHandler(svc service.IArticleService, l logger.Logger) *ArticleHan
 func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("/articles")
 	g.POST("/edit", u.Edit)
+	g.POST("/publish", u.Publish)
+
 }
 
-func (u *ArticleHandler) Edit(ctx *gin.Context) {
-	type Req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-	var req Req
+func (u *ArticleHandler) Publish(ctx *gin.Context) {
+	var req ArticleReq
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
@@ -43,25 +41,64 @@ func (u *ArticleHandler) Edit(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	save, err := u.svc.Save(ctx, domain.Article{
-		Title:   req.Title,
-		Content: req.Content,
-		Author: domain.Author{
-			Id:   claims.UserId,
-			Name: "system",
-		},
-	})
+	save, err := u.svc.Publish(ctx, req.toDomain(claims.UserId))
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result[any]{
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "保存失败",
+		})
+		u.l.Error("发布文章失败", logger.Error(err.Error()))
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "ok",
+		Data: save,
+	})
+}
+
+func (u *ArticleHandler) Edit(ctx *gin.Context) {
+	var req ArticleReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	// todo 检测输入
+	c := ctx.MustGet("claims")
+	claims, ok := c.(*jwtHandler.UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	save, err := u.svc.Save(ctx, req.toDomain(claims.UserId))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "保存失败",
 		})
 		u.l.Error("保存文章失败", logger.Error(err.Error()))
 		return
 	}
-	ctx.JSON(http.StatusOK, Result[int64]{
+	ctx.JSON(http.StatusOK, Result{
 		Code: 0,
 		Msg:  "ok",
 		Data: save,
 	})
+}
+
+type ArticleReq struct {
+	Id      int64  `json:"id"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (req ArticleReq) toDomain(uid int64) domain.Article {
+	return domain.Article{
+		Id:      req.Id,
+		Title:   req.Title,
+		Content: req.Content,
+		Author: domain.Author{
+			Id:   uid,
+			Name: "system",
+		},
+	}
 }
