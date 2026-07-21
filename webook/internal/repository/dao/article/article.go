@@ -1,4 +1,4 @@
-package dao
+package article
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -15,16 +16,57 @@ var (
 type ArticleDao interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, art Article) error
+	Sync(ctx context.Context, art Article) (int64, error)
+	Upsert(ctx context.Context, art PublishArticle) error
 }
 
 type ArticleGormDao struct {
 	db *gorm.DB
 }
 
+func (a ArticleGormDao) Sync(ctx context.Context, art Article) (int64, error) {
+	var id = art.Id
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		txDao := NewArticleGormDao(tx)
+		if id > 0 {
+			err = txDao.UpdateById(ctx, art)
+		} else {
+			id, err = txDao.Insert(ctx, art)
+		}
+		if err != nil {
+			return err
+		}
+		// 操作线上库
+		return txDao.Upsert(ctx, PublishArticle{art})
+
+	})
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
 func NewArticleGormDao(db *gorm.DB) *ArticleGormDao {
 	return &ArticleGormDao{
 		db: db,
 	}
+}
+
+func (a ArticleGormDao) Upsert(ctx context.Context, art PublishArticle) error {
+	now := time.Now()
+	art.Ctime = now.UnixMilli()
+	art.Utime = now.UnixMilli()
+	err := a.db.Clauses(clause.OnConflict{
+		DoUpdates: clause.Assignments(map[string]any{
+			"title":   art.Title,
+			"content": art.Content,
+			"status":  art.Status,
+			"utime":   art.Utime,
+		}),
+	}).Create(&art).Error
+	// insert xxx on duplicate key update xxx
+	return err
 }
 
 func (a ArticleGormDao) Insert(ctx context.Context, art Article) (int64, error) {
@@ -43,6 +85,7 @@ func (a ArticleGormDao) UpdateById(ctx context.Context, art Article) error {
 		Updates(map[string]any{
 			"title":   art.Title,
 			"content": art.Content,
+			"status":  art.Status,
 			"utime":   art.Utime,
 		})
 	if res.Error != nil {
@@ -59,7 +102,8 @@ type Article struct {
 	Title    string `gorm:"type=varchar(1024)"`
 	Content  string `gorm:"type=BLOB"`
 	AuthorId int64  `gorm:"index=aid_ctime"`
-	Ctime    int64  `gorm:"index=aid_ctime"`
+	Status   uint8
+	Ctime    int64 `gorm:"index=aid_ctime"`
 	Utime    int64
 }
 

@@ -11,6 +11,7 @@ import (
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
+	"webook/webook/internal/repository/dao/article"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
 	jwtHandler "webook/webook/internal/web/jwt"
@@ -23,9 +24,9 @@ func InitWebServer() *gin.Engine {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
 		dao.NewUserDAO,
-		dao.NewArticleGormDao,
+		article.NewArticleGormDao,
 		wire.Bind(new(dao.UserDao), new(*dao.GormUserDAO)),
-		wire.Bind(new(dao.ArticleDao), new(*dao.ArticleGormDao)),
+		wire.Bind(new(article.ArticleDao), new(*article.ArticleGormDao)),
 
 		cache.NewCodeCache,
 		wire.Bind(new(cache.CodeCache), new(*cache.RedisCodeCache)),
@@ -75,9 +76,9 @@ func InitArticleHandler() *web.ArticleHandler {
 		service.NewArticleService,
 		web.NewArticleHandler,
 		repository.NewCachedArticleRepository,
-		dao.NewArticleGormDao,
+		article.NewArticleGormDao,
 		wire.Bind(new(repository.ArticleRepository), new(*repository.CachedArticleRepository)),
-		wire.Bind(new(dao.ArticleDao), new(*dao.ArticleGormDao)),
+		wire.Bind(new(article.ArticleDao), new(*article.ArticleGormDao)),
 	)
 	return &web.ArticleHandler{}
 }

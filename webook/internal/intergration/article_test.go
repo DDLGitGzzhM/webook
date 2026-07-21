@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"webook/webook/internal/pkg/logger"
-	"webook/webook/internal/repository/dao"
+	"webook/webook/internal/repository/dao/article"
 	"webook/webook/internal/web/jwt"
 	"webook/webook/ioc"
 	"webook/webook/startup"
@@ -67,16 +67,17 @@ func (s *ArticleTestSuite) TestEdit() {
 
 			},
 			after: func(t *testing.T) {
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", "1").First(&art).Error
 				require.Nil(t, err)
 				art.Ctime = 0
 				art.Utime = 0
-				require.Equal(t, art, dao.Article{
+				require.Equal(t, art, article.Article{
 					Id:       1,
 					Title:    "测试帖子",
 					Content:  "测试内容",
 					AuthorId: 123,
+					Status:   1,
 				})
 			},
 			art: Article{
@@ -93,26 +94,28 @@ func (s *ArticleTestSuite) TestEdit() {
 		{
 			name: "修改已有帖子，并保存",
 			before: func(t *testing.T) {
-				s.db.Create(&dao.Article{
+				s.db.Create(&article.Article{
 					Id:       2,
 					Title:    "修改帖子",
 					Content:  "我的内容",
 					AuthorId: 123,
+					Status:   1,
 					Ctime:    100,
 					Utime:    100,
 				})
 			},
 			after: func(t *testing.T) {
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", "2").First(&art).Error
 				require.Nil(t, err)
 				require.True(t, art.Utime > 100)
 				art.Utime = 0
-				require.Equal(t, art, dao.Article{
+				require.Equal(t, art, article.Article{
 					Id:       2,
 					Title:    "新的标题",
 					Content:  "新的内容",
 					AuthorId: 123,
+					Status:   1,
 					Ctime:    100,
 				})
 			},
@@ -131,24 +134,26 @@ func (s *ArticleTestSuite) TestEdit() {
 		{
 			name: "修改别人的文章",
 			before: func(t *testing.T) {
-				s.db.Create(&dao.Article{
+				s.db.Create(&article.Article{
 					Id:       3,
 					Title:    "修改帖子",
 					Content:  "我的内容",
 					AuthorId: 456,
+					Status:   1,
 					Ctime:    100,
 					Utime:    100,
 				})
 			},
 			after: func(t *testing.T) {
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", "3").First(&art).Error
 				require.Nil(t, err)
-				require.Equal(t, art, dao.Article{
+				require.Equal(t, art, article.Article{
 					Id:       3,
 					Title:    "修改帖子",
 					Content:  "我的内容",
 					AuthorId: 456,
+					Status:   1,
 					Ctime:    100,
 					Utime:    100,
 				})

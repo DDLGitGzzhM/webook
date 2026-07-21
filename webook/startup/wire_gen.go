@@ -9,11 +9,13 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
+	"webook/webook/internal/repository/dao/article"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/jwt"
@@ -44,7 +46,7 @@ func InitWebServer() *gin.Engine {
 	userHandler := web.NewUserHandler(userService, codeService, redisJwt, cmdable)
 	wechatService := ioc.InitWeChatService()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService, redisJwt)
-	articleGormDao := dao.NewArticleGormDao(db)
+	articleGormDao := article.NewArticleGormDao(db)
 	cachedArticleRepository := repository.NewCachedArticleRepository(articleGormDao)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
 	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
@@ -56,7 +58,7 @@ func InitArticleHandler() *web.ArticleHandler {
 	zapLogger := ioc.InitLogger()
 	loggerZapLogger := logger.NewZapLogger(zapLogger)
 	db := ioc.InitDB(loggerZapLogger)
-	articleGormDao := dao.NewArticleGormDao(db)
+	articleGormDao := article.NewArticleGormDao(db)
 	cachedArticleRepository := repository.NewCachedArticleRepository(articleGormDao)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
 	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)

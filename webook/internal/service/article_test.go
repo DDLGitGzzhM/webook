@@ -32,6 +32,7 @@ func Test_ArticleService_Publish(t *testing.T) {
 						Id:   123,
 						Name: "system",
 					},
+					Status: domain.ArticleStatusPublished,
 				}).Return(int64(1), nil)
 				reader := repoMock.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
@@ -42,6 +43,7 @@ func Test_ArticleService_Publish(t *testing.T) {
 						Id:   123,
 						Name: "system",
 					},
+					Status: domain.ArticleStatusPublished,
 				}).Return(int64(1), nil)
 				return author, reader
 			},

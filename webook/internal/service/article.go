@@ -38,11 +38,8 @@ func NewArticleServiceV1(auth article.ArticleAuthorRepository, reader article.Ar
 }
 
 func (a ArticleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
-	id, err := a.repo.Create(ctx, art)
-	if err != nil {
-		return 0, err
-	}
-	return id, err
+	art.Status = domain.ArticleStatusPublished
+	return a.repo.SyncV1(ctx, art)
 }
 
 func (a ArticleService) PublishV1(ctx context.Context, art domain.Article) (int64, error) {
@@ -50,7 +47,7 @@ func (a ArticleService) PublishV1(ctx context.Context, art domain.Article) (int6
 		id  = art.Id
 		err error
 	)
-
+	art.Status = domain.ArticleStatusPublished
 	if art.Id > 0 {
 		err = a.author.UpdateById(ctx, art)
 	} else {
@@ -82,6 +79,7 @@ func (a ArticleService) PublishV1(ctx context.Context, art domain.Article) (int6
 }
 
 func (a ArticleService) Save(ctx context.Context, art domain.Article) (int64, error) {
+	art.Status = domain.ArticleStatusUnpublished
 	if art.Id > 0 {
 		err := a.repo.UpdateById(ctx, art)
 		return art.Id, err
