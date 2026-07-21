@@ -17,6 +17,8 @@ type ArticleDao interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
+	// SyncStatus 同库不同表，事务同步更新制作库与线上库状态
+	SyncStatus(ctx context.Context, uid, id int64, status uint8) error
 	Upsert(ctx context.Context, art PublishArticle) error
 }
 
@@ -51,6 +53,35 @@ func NewArticleGormDao(db *gorm.DB) *ArticleGormDao {
 	return &ArticleGormDao{
 		db: db,
 	}
+}
+
+// SyncStatus 在同一事务中更新 articles 与 publish_articles 的状态
+func (a ArticleGormDao) SyncStatus(ctx context.Context, uid, id int64, status uint8) error {
+	now := time.Now().UnixMilli()
+	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&Article{}).
+			Where("id = ? AND author_id = ?", id, uid).
+			Updates(map[string]any{
+				"status": status,
+				"utime":  now,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ArtNotFound
+		}
+		res = tx.Model(&PublishArticle{}).
+			Where("id = ? AND author_id = ?", id, uid).
+			Updates(map[string]any{
+				"status": status,
+				"utime":  now,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		return nil
+	})
 }
 
 func (a ArticleGormDao) Upsert(ctx context.Context, art PublishArticle) error {

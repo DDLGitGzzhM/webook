@@ -9,9 +9,10 @@ import (
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
+	articlerepo "webook/webook/internal/repository/article"
 	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
-	"webook/webook/internal/repository/dao/article"
+	articledao "webook/webook/internal/repository/dao/article"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
 	jwtHandler "webook/webook/internal/web/jwt"
@@ -24,9 +25,9 @@ func InitWebServer() *gin.Engine {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
 		dao.NewUserDAO,
-		article.NewArticleGormDao,
+		articledao.NewArticleGormDao,
 		wire.Bind(new(dao.UserDao), new(*dao.GormUserDAO)),
-		wire.Bind(new(article.ArticleDao), new(*article.ArticleGormDao)),
+		wire.Bind(new(articledao.ArticleDao), new(*articledao.ArticleGormDao)),
 
 		cache.NewCodeCache,
 		wire.Bind(new(cache.CodeCache), new(*cache.RedisCodeCache)),
@@ -34,12 +35,12 @@ func InitWebServer() *gin.Engine {
 		wire.Bind(new(cache.UserCache), new(*cache.RedisUserCache)),
 
 		repository.NewUserRepository,
-		repository.NewCachedArticleRepository,
+		articlerepo.NewCachedArticleRepository,
 		repository.NewCodeRepository,
 
 		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
 		wire.Bind(new(repository.CodeRepository), new(*repository.CacheCodeRepository)),
-		wire.Bind(new(repository.ArticleRepository), new(*repository.CachedArticleRepository)),
+		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
 
 		service.NewUserService,
 		service.NewArticleService,
@@ -75,10 +76,10 @@ func InitArticleHandler() *web.ArticleHandler {
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		service.NewArticleService,
 		web.NewArticleHandler,
-		repository.NewCachedArticleRepository,
-		article.NewArticleGormDao,
-		wire.Bind(new(repository.ArticleRepository), new(*repository.CachedArticleRepository)),
-		wire.Bind(new(article.ArticleDao), new(*article.ArticleGormDao)),
+		articlerepo.NewCachedArticleRepository,
+		articledao.NewArticleGormDao,
+		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
+		wire.Bind(new(articledao.ArticleDao), new(*articledao.ArticleGormDao)),
 	)
 	return &web.ArticleHandler{}
 }
