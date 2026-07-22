@@ -12,6 +12,8 @@ import (
 type ArticleRepository interface {
 	Create(ctx context.Context, art domain.Article) (int64, error)
 	UpdateById(ctx context.Context, art domain.Article) error
+	// Sync 存储并同步数据到线上库
+	Sync(ctx context.Context, art domain.Article) (int64, error)
 	SyncV1(ctx context.Context, art domain.Article) (int64, error)
 	// SyncStatus 同步制作库与线上库的文章状态
 	SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error

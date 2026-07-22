@@ -69,17 +69,14 @@ func InitWebServer() *gin.Engine {
 	return new(gin.Engine)
 }
 
-func InitArticleHandler() *web.ArticleHandler {
+func InitArticleHandler(dao articledao.ArticleDao) *web.ArticleHandler {
 	wire.Build(
-		thirdProvider,
 		logger.NewZapLogger,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		service.NewArticleService,
 		web.NewArticleHandler,
 		articlerepo.NewCachedArticleRepository,
-		articledao.NewArticleGormDao,
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
-		wire.Bind(new(articledao.ArticleDao), new(*articledao.ArticleGormDao)),
 	)
 	return &web.ArticleHandler{}
 }

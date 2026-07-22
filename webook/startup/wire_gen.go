@@ -54,12 +54,10 @@ func InitWebServer() *gin.Engine {
 	return engine
 }
 
-func InitArticleHandler() *web.ArticleHandler {
+func InitArticleHandler(dao2 article.ArticleDao) *web.ArticleHandler {
 	zapLogger := ioc.InitLogger()
 	loggerZapLogger := logger.NewZapLogger(zapLogger)
-	db := ioc.InitDB(loggerZapLogger)
-	articleGormDao := article.NewArticleGormDao(db)
-	cachedArticleRepository := article2.NewCachedArticleRepository(articleGormDao)
+	cachedArticleRepository := article2.NewCachedArticleRepository(dao2)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
 	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
 	return articleHandler

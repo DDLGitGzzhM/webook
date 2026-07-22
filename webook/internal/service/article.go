@@ -40,7 +40,7 @@ func NewArticleServiceV1(auth article.ArticleAuthorRepository, reader article.Ar
 
 func (a ArticleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
 	art.Status = domain.ArticleStatusPublished
-	return a.repo.SyncV1(ctx, art)
+	return a.repo.Sync(ctx, art)
 }
 
 func (a ArticleService) Withdraw(ctx context.Context, uid, id int64) error {
