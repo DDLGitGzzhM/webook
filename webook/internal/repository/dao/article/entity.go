@@ -15,3 +15,13 @@ type Article struct {
 
 // PublishArticle 线上库，衍生类型
 type PublishArticle Article
+
+// PublishArticleV1 s3 演示专属，线上库不存 Content
+type PublishArticleV1 struct {
+	Id       int64  `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
+	Title    string `gorm:"type=varchar(4096)" bson:"title,omitempty"`
+	AuthorId int64  `gorm:"index" bson:"author_id,omitempty"`
+	Status   uint8  `bson:"status,omitempty"`
+	Ctime    int64  `bson:"ctime,omitempty"`
+	Utime    int64  `bson:"utime,omitempty"`
+}
