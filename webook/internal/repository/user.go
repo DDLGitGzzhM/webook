@@ -91,6 +91,7 @@ func (r *CacheUserRepository) domainToEntity(u domain.User) *dao.User {
 		Email:         sql.NullString{String: u.Email, Valid: true},
 		Phone:         sql.NullString{String: u.Phone, Valid: true},
 		Password:      u.PassWord,
+		Nickname:      u.Nickname,
 		WechatOpenID:  sql.NullString{String: u.OpenId, Valid: true},
 		WeChatUnionID: sql.NullString{String: u.UnionId, Valid: true},
 		Ctime:         u.Ctime.UnixMilli(),
@@ -103,6 +104,7 @@ func (r *CacheUserRepository) entityToDomain(u *dao.User) domain.User {
 		Email:    u.Email.String,
 		Phone:    u.Phone.String,
 		PassWord: u.Password,
+		Nickname: u.Nickname,
 		WeChatInfo: domain.WeChatInfo{
 			OpenId:  u.WechatOpenID.String,
 			UnionId: u.WeChatUnionID.String,

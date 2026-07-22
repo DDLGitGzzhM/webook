@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/ginx/middleware/logger"
 	ginxlimit "webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	pkgLog "webook/webook/internal/pkg/logger"
@@ -26,6 +27,7 @@ func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2Wecha
 }
 
 func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.Logger) []gin.HandlerFunc {
+	ginx.L = log
 	return []gin.HandlerFunc{
 		logger.NewMiddleWareBuilder(func(ctx context.Context, al *logger.Accesslog) {
 			log.Info("scall", pkgLog.Field{

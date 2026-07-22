@@ -22,11 +22,19 @@ func (a *ArticleGormDao) GetByAuthor(
 	ctx context.Context, author int64, offset, limit int,
 ) ([]Article, error) {
 	var arts []Article
+	// SELECT * FROM XXX WHERE XX order by aaa
+	// 设计 order by 时要注意让排序字段命中索引
+	// author_id => author_id, utime 的联合索引
 	err := a.db.WithContext(ctx).Model(&Article{}).
 		Where("author_id = ?", author).
 		Offset(offset).
 		Limit(limit).
+		// 升序：utime ASC；混合排序：ctime ASC, utime DESC
 		Order("utime DESC").
+		//Order(clause.OrderBy{Columns: []clause.OrderByColumn{
+		//	{Column: clause.Column{Name: "utime"}, Desc: true},
+		//	{Column: clause.Column{Name: "ctime"}, Desc: false},
+		//}}).
 		Find(&arts).Error
 	return arts, err
 }

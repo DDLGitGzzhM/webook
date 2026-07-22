@@ -56,18 +56,49 @@ func (mr *MockArticleRepositoryMockRecorder) Create(ctx, art any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockArticleRepository)(nil).Create), ctx, art)
 }
 
-// SyncStatus mocks base method.
-func (m *MockArticleRepository) SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error {
+// GetByID mocks base method.
+func (m *MockArticleRepository) GetByID(ctx context.Context, id int64) (domain.Article, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SyncStatus", ctx, uid, id, status)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "GetByID", ctx, id)
+	ret0, _ := ret[0].(domain.Article)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// SyncStatus indicates an expected call of SyncStatus.
-func (mr *MockArticleRepositoryMockRecorder) SyncStatus(ctx, uid, id, status any) *gomock.Call {
+// GetByID indicates an expected call of GetByID.
+func (mr *MockArticleRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncStatus", reflect.TypeOf((*MockArticleRepository)(nil).SyncStatus), ctx, uid, id, status)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockArticleRepository)(nil).GetByID), ctx, id)
+}
+
+// GetPublishedById mocks base method.
+func (m *MockArticleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPublishedById", ctx, id)
+	ret0, _ := ret[0].(domain.Article)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPublishedById indicates an expected call of GetPublishedById.
+func (mr *MockArticleRepositoryMockRecorder) GetPublishedById(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublishedById", reflect.TypeOf((*MockArticleRepository)(nil).GetPublishedById), ctx, id)
+}
+
+// List mocks base method.
+func (m *MockArticleRepository) List(ctx context.Context, uid int64, offset, limit int) ([]domain.Article, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx, uid, offset, limit)
+	ret0, _ := ret[0].([]domain.Article)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// List indicates an expected call of List.
+func (mr *MockArticleRepositoryMockRecorder) List(ctx, uid, offset, limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockArticleRepository)(nil).List), ctx, uid, offset, limit)
 }
 
 // Sync mocks base method.
@@ -83,6 +114,20 @@ func (m *MockArticleRepository) Sync(ctx context.Context, art domain.Article) (i
 func (mr *MockArticleRepositoryMockRecorder) Sync(ctx, art any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Sync", reflect.TypeOf((*MockArticleRepository)(nil).Sync), ctx, art)
+}
+
+// SyncStatus mocks base method.
+func (m *MockArticleRepository) SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SyncStatus", ctx, uid, id, status)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SyncStatus indicates an expected call of SyncStatus.
+func (mr *MockArticleRepositoryMockRecorder) SyncStatus(ctx, uid, id, status any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncStatus", reflect.TypeOf((*MockArticleRepository)(nil).SyncStatus), ctx, uid, id, status)
 }
 
 // SyncV1 mocks base method.

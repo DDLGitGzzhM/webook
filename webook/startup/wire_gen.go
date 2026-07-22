@@ -47,17 +47,24 @@ func InitWebServer() *gin.Engine {
 	wechatService := ioc.InitWeChatService()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService, redisJwt)
 	articleGormDao := article.NewArticleGormDao(db)
-	cachedArticleRepository := article2.NewCachedArticleRepository(articleGormDao)
+	redisArticleCache := cache.NewRedisArticleCache(cmdable)
+	cachedArticleRepository := article2.NewCachedArticleRepository(articleGormDao, cacheUserRepository, redisArticleCache, loggerZapLogger)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
 	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
 
-func InitArticleHandler(dao2 article.ArticleDao) *web.ArticleHandler {
+func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
 	zapLogger := ioc.InitLogger()
 	loggerZapLogger := logger.NewZapLogger(zapLogger)
-	cachedArticleRepository := article2.NewCachedArticleRepository(dao2)
+	db := ioc.InitDB(loggerZapLogger)
+	gormUserDAO := dao.NewUserDAO(db)
+	cmdable := ioc.InitRedis()
+	redisUserCache := cache.NewUserCache(cmdable)
+	cacheUserRepository := repository.NewUserRepository(gormUserDAO, redisUserCache)
+	redisArticleCache := cache.NewRedisArticleCache(cmdable)
+	cachedArticleRepository := article2.NewCachedArticleRepository(artDAO, cacheUserRepository, redisArticleCache, loggerZapLogger)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
 	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
 	return articleHandler

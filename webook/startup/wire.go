@@ -33,6 +33,8 @@ func InitWebServer() *gin.Engine {
 		wire.Bind(new(cache.CodeCache), new(*cache.RedisCodeCache)),
 		cache.NewUserCache,
 		wire.Bind(new(cache.UserCache), new(*cache.RedisUserCache)),
+		cache.NewRedisArticleCache,
+		wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)),
 
 		repository.NewUserRepository,
 		articlerepo.NewCachedArticleRepository,
@@ -69,8 +71,19 @@ func InitWebServer() *gin.Engine {
 	return new(gin.Engine)
 }
 
-func InitArticleHandler(dao articledao.ArticleDao) *web.ArticleHandler {
+func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
 	wire.Build(
+		ioc.InitRedis,
+		ioc.InitDB,
+		ioc.InitLogger,
+		dao.NewUserDAO,
+		wire.Bind(new(dao.UserDao), new(*dao.GormUserDAO)),
+		cache.NewUserCache,
+		wire.Bind(new(cache.UserCache), new(*cache.RedisUserCache)),
+		cache.NewRedisArticleCache,
+		wire.Bind(new(cache.ArticleCache), new(*cache.RedisArticleCache)),
+		repository.NewUserRepository,
+		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
 		logger.NewZapLogger,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		service.NewArticleService,

@@ -87,6 +87,7 @@ type User struct {
 	Id       int64          `gorm:"primaryKey,autoIncrement"`
 	Email    sql.NullString `gorm:"unique"`
 	Password string
+	Nickname string
 	Phone    sql.NullString `gorm:"unique"` // 唯一索引允许有多个空值
 
 	WeChatUnionID sql.NullString `gorm:"unique"`
