@@ -10,6 +10,11 @@ type Article struct {
 	Status  ArticleStatus
 	Ctime   time.Time
 	Utime   time.Time
+
+	// 做成这样，就应该在 service 或者 repository 里面完成构造
+	// 设计成这个样子，就认为 Interactive 是 Article 的一个属性（值对象）
+	// Intr Interactive
+	//
 }
 
 func (a Article) Abstract() string {

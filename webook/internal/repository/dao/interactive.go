@@ -8,6 +8,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+var ErrRecordNotFound = gorm.ErrRecordNotFound
+
 //go:generate mockgen -source=./interactive.go -package=daomocks -destination=mocks/interactive.mock.go InteractiveDAO
 type InteractiveDAO interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
@@ -42,6 +44,36 @@ func (dao *GORMInteractiveDAO) GetCollectionInfo(
 	return res, err
 }
 
+// InsertCollectionBiz 和 InsertLikeInfo 能不能抽取出来，
+// 适当的重复（复制-粘贴）要比强行抽象要更加好一点
+//func (dao *GORMInteractiveDAO) common(ctx context.Context,
+//	biz any, column string, intr Interactive) error {
+//	now := time.Now().UnixMilli()
+//	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+//		err := dao.db.WithContext(ctx).Create(&biz).Error
+//		if err != nil {
+//			return err
+//		}
+//		return tx.Clauses(clause.OnConflict{
+//			DoUpdates: clause.Assignments(map[string]any{
+//				column:  gorm.Expr(fmt.Sprintf("`%s`+1", column)),
+//				"utime": now,
+//			}),
+//		}).Create(&intr).Error
+//	})
+//}
+//func (dao *GORMInteractiveDAO) InsertCollectionBizV1(ctx context.Context,
+//	cb UserCollectionBiz) error {
+//	now := time.Now().UnixMilli()
+//	return dao.common(ctx, cb, "collect_cnt", Interactive{
+//		CollectCnt: 1,
+//		Ctime:      now,
+//		Utime:      now,
+//		Biz:        cb.Biz,
+//		BizId:      cb.BizId,
+//	})
+//}
+
 // InsertCollectionBiz 插入收藏记录，并且更新计数
 func (dao *GORMInteractiveDAO) InsertCollectionBiz(
 	ctx context.Context, cb UserCollectionBiz,
@@ -50,10 +82,12 @@ func (dao *GORMInteractiveDAO) InsertCollectionBiz(
 	cb.Utime = now
 	cb.Ctime = now
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 插入收藏项目
 		err := tx.Create(&cb).Error
 		if err != nil {
 			return err
 		}
+		// 这边就是更新数量
 		return tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]any{
 				"collect_cnt": gorm.Expr("`collect_cnt`+1"),
@@ -305,4 +339,24 @@ type UserCollectionBiz struct {
 	Uid   int64 `gorm:"uniqueIndex:biz_type_id_uid"`
 	Ctime int64
 	Utime int64
+}
+
+// 假如说我有一个需求，需要查询到收藏夹的信息，和收藏夹里面的资源
+// SELECT c.id as cid , c.name as cname, uc.biz_id as biz_id, uc.biz as biz
+// FROM `collection` as c JOIN `user_collection_biz` as uc
+// ON c.id = uc.cid
+// WHERE c.id IN (1,2,3)
+
+type CollectionItem struct {
+	Cid   int64
+	Cname string
+	BizId int64
+	Biz   string
+}
+
+func (dao *GORMInteractiveDAO) GetItems() ([]CollectionItem, error) {
+	// 不记得构造 JOIN 查询
+	var items []CollectionItem
+	err := dao.db.Raw("", 1, 2, 3).Find(&items).Error
+	return items, err
 }

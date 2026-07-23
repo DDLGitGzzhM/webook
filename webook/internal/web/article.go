@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 
 	"webook/webook/internal/domain"
 	"webook/webook/internal/pkg/ginx"
@@ -88,13 +89,39 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		u.l.Error("前端输入的 ID 不对", logger.Error(err.Error()))
 		return
 	}
-	art, err := u.svc.GetPublishedById(ctx, id)
+
+	var (
+		eg   errgroup.Group
+		art  domain.Article
+		intr domain.Interactive
+	)
+	eg.Go(func() error {
+		var e error
+		art, e = u.svc.GetPublishedById(ctx, id)
+		return e
+	})
+	eg.Go(func() error {
+		// 要在这里获得这篇文章的计数
+		uc := ctx.MustGet("claims").(*jwtHandler.UserClaims)
+		// 这个地方可以容忍错误
+		var e error
+		intr, e = u.intrSvc.Get(ctx, u.biz, id, uc.UserId)
+		// 这种是容错的写法
+		//if e != nil {
+		//	// 记录日志
+		//}
+		//return nil
+		return e
+	})
+
+	// 在这儿等，要保证前面两个
+	err = eg.Wait()
 	if err != nil {
+		// 代表查询出错了
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
-		u.l.Error("获得文章信息失败", logger.Error(err.Error()))
 		return
 	}
 
@@ -112,13 +139,18 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
-			Id:      art.Id,
-			Title:   art.Title,
-			Status:  art.Status.ToUint8(),
-			Content: art.Content,
-			Author:  art.Author.Name,
-			Ctime:   art.Ctime.Format(time.DateTime),
-			Utime:   art.Utime.Format(time.DateTime),
+			Id:         art.Id,
+			Title:      art.Title,
+			Status:     art.Status.ToUint8(),
+			Content:    art.Content,
+			Author:     art.Author.Name,
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+			Liked:      intr.Liked,
+			Collected:  intr.Collected,
+			LikeCnt:    intr.LikeCnt,
+			ReadCnt:    intr.ReadCnt,
+			CollectCnt: intr.CollectCnt,
 		},
 	})
 }
