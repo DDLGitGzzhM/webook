@@ -3,9 +3,9 @@
 package startup
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 
+	"webook/webook/internal/events/article"
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
@@ -19,7 +19,13 @@ import (
 	"webook/webook/ioc"
 )
 
-var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)
+var thirdProvider = wire.NewSet(
+	ioc.InitDB,
+	ioc.InitRedis,
+	ioc.InitLogger,
+	ioc.InitKafka,
+	ioc.NewSyncProducer,
+)
 
 var interactiveSvcProvider = wire.NewSet(
 	service.NewInteractiveService,
@@ -28,9 +34,16 @@ var interactiveSvcProvider = wire.NewSet(
 	cache.NewRedisInteractiveCache,
 )
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
+		ioc.InitKafka,
+		ioc.NewSyncProducer,
+		ioc.NewConsumers,
+
+		article.NewKafkaProducer,
+		article.NewInteractiveReadEventConsumer,
+
 		dao.NewUserDAO,
 		articledao.NewArticleGormDao,
 		wire.Bind(new(dao.UserDao), new(*dao.GormUserDAO)),
@@ -76,8 +89,10 @@ func InitWebServer() *gin.Engine {
 		ioc.InitSMSService,
 		ioc.InitLimitParam,
 		wire.FieldsOf(new(ioc.LimitParam), "Interval", "Rate"),
+
+		wire.Struct(new(App), "*"),
 	)
-	return new(gin.Engine)
+	return new(App)
 }
 
 func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
@@ -96,6 +111,7 @@ func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
 		logger.NewZapLogger,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		interactiveSvcProvider,
+		article.NewNoOpProducer,
 		service.NewArticleService,
 		web.NewArticleHandler,
 		articlerepo.NewCachedArticleRepository,

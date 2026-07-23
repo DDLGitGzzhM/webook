@@ -7,8 +7,8 @@
 package startup
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	article3 "webook/webook/internal/events/article"
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
 	"webook/webook/internal/repository"
@@ -24,7 +24,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	cmdable := ioc.InitRedis()
 	limitParam := ioc.InitLimitParam()
 	duration := limitParam.Interval
@@ -49,14 +49,23 @@ func InitWebServer() *gin.Engine {
 	articleGormDao := article.NewArticleGormDao(db)
 	redisArticleCache := cache.NewRedisArticleCache(cmdable)
 	cachedArticleRepository := article2.NewCachedArticleRepository(articleGormDao, cacheUserRepository, redisArticleCache, loggerZapLogger)
-	iArticleService := service.NewArticleService(cachedArticleRepository)
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	iArticleService := service.NewArticleService(cachedArticleRepository, loggerZapLogger, producer)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
 	articleHandler := web.NewArticleHandler(iArticleService, interactiveService, loggerZapLogger)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
-	return engine
+	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, loggerZapLogger, interactiveRepository)
+	v2 := ioc.NewConsumers(interactiveReadEventConsumer)
+	app := &App{
+		web:       engine,
+		consumers: v2,
+	}
+	return app
 }
 
 func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
@@ -69,7 +78,8 @@ func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
 	cacheUserRepository := repository.NewUserRepository(gormUserDAO, redisUserCache)
 	redisArticleCache := cache.NewRedisArticleCache(cmdable)
 	cachedArticleRepository := article2.NewCachedArticleRepository(artDAO, cacheUserRepository, redisArticleCache, loggerZapLogger)
-	iArticleService := service.NewArticleService(cachedArticleRepository)
+	producer := article3.NewNoOpProducer()
+	iArticleService := service.NewArticleService(cachedArticleRepository, loggerZapLogger, producer)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
@@ -92,6 +102,6 @@ func InitInteractiveService() service.InteractiveService {
 
 // wire.go:
 
-var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)
+var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger, ioc.InitKafka, ioc.NewSyncProducer)
 
 var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)

@@ -13,7 +13,14 @@ func main() {
 	//u.RegisterRoutes(server)
 	startup.InitViperDev()
 	//initViperRemote()
-	server := startup.InitWebServer()
+	app := startup.InitWebServer()
+	for _, c := range app.Consumers() {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	server := app.Web()
 	//server := gin.Default()
 	//server.GET("/hello", func(ctx *gin.Context) {
 	//	ctx.JSON(200, "你好 k8s")

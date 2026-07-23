@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"webook/webook/internal/domain"
+	events "webook/webook/internal/events/article"
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/repository/article"
 )
@@ -15,7 +16,7 @@ type IArticleService interface {
 	Withdraw(ctx context.Context, uid, id int64) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error)
 }
 
 type ArticleService struct {
@@ -24,16 +25,27 @@ type ArticleService struct {
 	author article.ArticleAuthorRepository
 	reader article.ArticleReaderRepository
 
-	l logger.Logger
+	l        logger.Logger
+	producer events.Producer
 }
 
-func NewArticleService(repo article.ArticleRepository) IArticleService {
+func NewArticleService(
+	repo article.ArticleRepository,
+	l logger.Logger,
+	producer events.Producer,
+) IArticleService {
 	return &ArticleService{
-		repo: repo,
+		repo:     repo,
+		producer: producer,
+		l:        l,
 	}
 }
 
-func NewArticleServiceV1(auth article.ArticleAuthorRepository, reader article.ArticleReaderRepository, l logger.Logger) IArticleService {
+func NewArticleServiceV1(
+	auth article.ArticleAuthorRepository,
+	reader article.ArticleReaderRepository,
+	l logger.Logger,
+) IArticleService {
 	return &ArticleService{
 		author: auth,
 		reader: reader,
@@ -41,8 +53,30 @@ func NewArticleServiceV1(auth article.ArticleAuthorRepository, reader article.Ar
 	}
 }
 
-func (a ArticleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
-	return a.repo.GetPublishedById(ctx, id)
+func (a ArticleService) GetPublishedById(
+	ctx context.Context, id, uid int64,
+) (domain.Article, error) {
+	art, err := a.repo.GetPublishedById(ctx, id)
+	if err == nil {
+		go func() {
+			er := a.producer.ProduceReadEvent(
+				// 脱离主链路超时控制，使用独立 context
+				context.Background(),
+				events.ReadEvent{
+					// 即便你的消费者要用 art 里面的数据，
+					// 让它去查询，你不要在 event 里面带
+					Uid: uid,
+					Aid: id,
+				})
+			if er != nil {
+				a.l.Error("发送读者阅读事件失败",
+					logger.Int64("aid", id),
+					logger.Int64("uid", uid),
+					logger.Error(er.Error()))
+			}
+		}()
+	}
+	return art, err
 }
 
 func (a ArticleService) GetById(ctx context.Context, id int64) (domain.Article, error) {

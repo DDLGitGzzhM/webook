@@ -90,6 +90,7 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		return
 	}
 
+	uc := ctx.MustGet("claims").(*jwtHandler.UserClaims)
 	var (
 		eg   errgroup.Group
 		art  domain.Article
@@ -97,12 +98,10 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	)
 	eg.Go(func() error {
 		var e error
-		art, e = u.svc.GetPublishedById(ctx, id)
+		art, e = u.svc.GetPublishedById(ctx, id, uc.UserId)
 		return e
 	})
 	eg.Go(func() error {
-		// 要在这里获得这篇文章的计数
-		uc := ctx.MustGet("claims").(*jwtHandler.UserClaims)
 		// 这个地方可以容忍错误
 		var e error
 		intr, e = u.intrSvc.Get(ctx, u.biz, id, uc.UserId)
@@ -125,16 +124,16 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		return
 	}
 
-	// 增加阅读计数。
-	go func() {
-		// 开一个 goroutine，异步去执行
-		er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
-		if er != nil {
-			u.l.Error("增加阅读计数失败",
-				logger.Int64("aid", art.Id),
-				logger.Error(er.Error()))
-		}
-	}()
+	// 阅读计数改为通过 Kafka 异步消费更新，避免在主链路直接打库
+	//go func() {
+	//	// 你都异步了，怎么还说有巨大的压力呢？
+	//	er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
+	//	if er != nil {
+	//		u.l.Error("增加阅读计数失败",
+	//			logger.Int64("aid", art.Id),
+	//			logger.Error(er.Error()))
+	//	}
+	//}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
