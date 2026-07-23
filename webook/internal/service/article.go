@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"webook/webook/internal/domain"
 	events "webook/webook/internal/events/article"
@@ -27,6 +28,13 @@ type ArticleService struct {
 
 	l        logger.Logger
 	producer events.Producer
+
+	ch chan readInfo
+}
+
+type readInfo struct {
+	uid int64
+	aid int64
 }
 
 func NewArticleService(
@@ -38,6 +46,48 @@ func NewArticleService(
 		repo:     repo,
 		producer: producer,
 		l:        l,
+		//ch:       make(chan readInfo, 10),
+	}
+}
+
+func NewArticleServiceV2(
+	repo article.ArticleRepository,
+	l logger.Logger,
+	producer events.Producer,
+) IArticleService {
+	ch := make(chan readInfo, 10)
+	go func() {
+		for {
+			uids := make([]int64, 0, 10)
+			aids := make([]int64, 0, 10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			for i := 0; i < 10; i++ {
+				select {
+				case info, ok := <-ch:
+					if !ok {
+						cancel()
+						return
+					}
+					uids = append(uids, info.uid)
+					aids = append(aids, info.aid)
+				case <-ctx.Done():
+					break
+				}
+			}
+			cancel()
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			producer.ProduceReadEventV1(ctx, events.ReadEventV1{
+				Uids: uids,
+				Aids: aids,
+			})
+			cancel()
+		}
+	}()
+	return &ArticleService{
+		repo:     repo,
+		producer: producer,
+		l:        l,
+		ch:       ch,
 	}
 }
 
@@ -59,6 +109,7 @@ func (a ArticleService) GetPublishedById(
 	art, err := a.repo.GetPublishedById(ctx, id)
 	if err == nil {
 		go func() {
+			// 生产者也可以通过改批量来提高性能
 			er := a.producer.ProduceReadEvent(
 				// 脱离主链路超时控制，使用独立 context
 				context.Background(),
@@ -75,6 +126,16 @@ func (a ArticleService) GetPublishedById(
 					logger.Error(er.Error()))
 			}
 		}()
+
+		// 改批量的做法（NewArticleServiceV2 才会初始化 ch）
+		if a.ch != nil {
+			go func() {
+				a.ch <- readInfo{
+					aid: id,
+					uid: uid,
+				}
+			}()
+		}
 	}
 	return art, err
 }

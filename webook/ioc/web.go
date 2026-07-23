@@ -9,6 +9,7 @@ import (
 
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/ginx/middleware/logger"
+	"webook/webook/internal/pkg/ginx/middleware/metric"
 	ginxlimit "webook/webook/internal/pkg/ginx/middleware/ratelimit"
 	pkgLog "webook/webook/internal/pkg/logger"
 	"webook/webook/internal/pkg/ratelimit"
@@ -23,6 +24,7 @@ func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2Wecha
 	hdl.RegisterRoutes(server)
 	oauth.RegisterRoutes(server)
 	article.RegisterRoutes(server)
+	(&web.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
 
@@ -34,6 +36,13 @@ func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.
 				Key:   "al",
 				Value: al,
 			})
+		}).Build(),
+		(&metric.MiddlewareBuilder{
+			Namespace:  "geekbang_daming",
+			Subsystem:  "webook",
+			Name:       "gin_http",
+			Help:       "统计 GIN 的 HTTP 接口",
+			InstanceID: "my-instance-1",
 		}).Build(),
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},

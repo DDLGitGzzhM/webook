@@ -42,7 +42,7 @@ func InitWebServer() *App {
 		ioc.NewConsumers,
 
 		article.NewKafkaProducer,
-		article.NewInteractiveReadEventConsumer,
+		article.NewInteractiveReadEventBatchConsumer,
 
 		dao.NewUserDAO,
 		articledao.NewArticleGormDao,

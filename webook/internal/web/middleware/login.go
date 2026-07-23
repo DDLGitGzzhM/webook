@@ -26,7 +26,8 @@ func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			ctx.Request.URL.Path == "/users/login_sms/code/send" ||
 			ctx.Request.URL.Path == "/users/login_sms" ||
 			ctx.Request.URL.Path == "/oauth2/wechat/authurl" ||
-			ctx.Request.URL.Path == "/oauth2/wechat/callback" {
+			ctx.Request.URL.Path == "/oauth2/wechat/callback" ||
+			ctx.Request.URL.Path == "/test/metric" {
 			ctx.Next()
 			return
 		}
