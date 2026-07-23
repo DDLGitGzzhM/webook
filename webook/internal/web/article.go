@@ -17,14 +17,22 @@ import (
 )
 
 type ArticleHandler struct {
-	svc service.IArticleService
-	l   logger.Logger
+	svc     service.IArticleService
+	l       logger.Logger
+	intrSvc service.InteractiveService
+	biz     string
 }
 
-func NewArticleHandler(svc service.IArticleService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(
+	svc service.IArticleService,
+	intrSvc service.InteractiveService,
+	l logger.Logger,
+) *ArticleHandler {
 	return &ArticleHandler{
-		svc: svc,
-		l:   l,
+		svc:     svc,
+		intrSvc: intrSvc,
+		l:       l,
+		biz:     "article",
 	}
 }
 
@@ -40,6 +48,33 @@ func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 
 	pub := g.Group("/pub")
 	pub.GET("/:id", u.PubDetail)
+	// 点赞是这个接口，取消点赞也是这个接口
+	// RESTful 风格
+	//pub.POST("/like/:id", ginx.WrapBodyAndToken[LikeReq,
+	//	*jwtHandler.UserClaims](u.Like))
+	pub.POST("/like", ginx.WrapBodyAndToken[LikeReq,
+		*jwtHandler.UserClaims](u.Like))
+	//pub.POST("/cancel_like", ginx.WrapBodyAndToken[LikeReq,
+	//	*jwtHandler.UserClaims](u.Like))
+}
+
+func (u *ArticleHandler) Like(
+	ctx *gin.Context, req LikeReq, uc *jwtHandler.UserClaims,
+) (ginx.Result, error) {
+	var err error
+	if req.Like {
+		err = u.intrSvc.Like(ctx, u.biz, req.Id, uc.UserId)
+	} else {
+		err = u.intrSvc.CancelLike(ctx, u.biz, req.Id, uc.UserId)
+	}
+
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{Msg: "OK"}, nil
 }
 
 func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
@@ -62,6 +97,19 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		u.l.Error("获得文章信息失败", logger.Error(err.Error()))
 		return
 	}
+
+	// 增加阅读计数。
+	go func() {
+		// 开一个 goroutine，异步去执行
+		er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
+		if er != nil {
+			u.l.Error("增加阅读计数失败",
+				logger.Int64("aid", art.Id),
+				logger.Error(er.Error()))
+		}
+	}()
+
+	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
 			Id:      art.Id,

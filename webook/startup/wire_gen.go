@@ -50,7 +50,11 @@ func InitWebServer() *gin.Engine {
 	redisArticleCache := cache.NewRedisArticleCache(cmdable)
 	cachedArticleRepository := article2.NewCachedArticleRepository(articleGormDao, cacheUserRepository, redisArticleCache, loggerZapLogger)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
-	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveService, loggerZapLogger)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
@@ -66,10 +70,28 @@ func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
 	redisArticleCache := cache.NewRedisArticleCache(cmdable)
 	cachedArticleRepository := article2.NewCachedArticleRepository(artDAO, cacheUserRepository, redisArticleCache, loggerZapLogger)
 	iArticleService := service.NewArticleService(cachedArticleRepository)
-	articleHandler := web.NewArticleHandler(iArticleService, loggerZapLogger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveService, loggerZapLogger)
 	return articleHandler
+}
+
+func InitInteractiveService() service.InteractiveService {
+	zapLogger := ioc.InitLogger()
+	loggerZapLogger := logger.NewZapLogger(zapLogger)
+	db := ioc.InitDB(loggerZapLogger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	cmdable := ioc.InitRedis()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
+	return interactiveService
 }
 
 // wire.go:
 
 var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)
+
+var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)

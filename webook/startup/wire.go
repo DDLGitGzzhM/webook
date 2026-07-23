@@ -21,6 +21,13 @@ import (
 
 var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger)
 
+var interactiveSvcProvider = wire.NewSet(
+	service.NewInteractiveService,
+	repository.NewCachedInteractiveRepository,
+	dao.NewGORMInteractiveDAO,
+	cache.NewRedisInteractiveCache,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
@@ -43,6 +50,8 @@ func InitWebServer() *gin.Engine {
 		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
 		wire.Bind(new(repository.CodeRepository), new(*repository.CacheCodeRepository)),
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
+
+		interactiveSvcProvider,
 
 		service.NewUserService,
 		service.NewArticleService,
@@ -86,10 +95,23 @@ func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
 		wire.Bind(new(repository.UserRepository), new(*repository.CacheUserRepository)),
 		logger.NewZapLogger,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
+		interactiveSvcProvider,
 		service.NewArticleService,
 		web.NewArticleHandler,
 		articlerepo.NewCachedArticleRepository,
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
 	)
 	return &web.ArticleHandler{}
+}
+
+func InitInteractiveService() service.InteractiveService {
+	wire.Build(
+		ioc.InitDB,
+		ioc.InitRedis,
+		ioc.InitLogger,
+		logger.NewZapLogger,
+		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
+		interactiveSvcProvider,
+	)
+	return service.NewInteractiveService(nil, nil)
 }

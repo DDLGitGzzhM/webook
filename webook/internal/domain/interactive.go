@@ -1,0 +1,12 @@
+package domain
+
+// Interactive 总体交互计数
+type Interactive struct {
+	ReadCnt    int64 `json:"read_cnt"`
+	LikeCnt    int64 `json:"like_cnt"`
+	CollectCnt int64 `json:"collect_cnt"`
+	// Liked / Collected 表示当前用户是否点赞或收藏
+	// 也可拆成独立结构体
+	Liked     bool `json:"liked"`
+	Collected bool `json:"collected"`
+}

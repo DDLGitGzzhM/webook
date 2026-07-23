@@ -82,7 +82,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 					UserId: 123,
 				})
 			})
-			h := NewArticleHandler(tc.mock(ctrl), &logger.NopLogger{})
+			h := NewArticleHandler(tc.mock(ctrl), nil, &logger.NopLogger{})
 			h.RegisterRoutes(server)
 			req, err := http.NewRequest(http.MethodPost, "/articles/publish", bytes.NewBuffer([]byte(tc.reqBody)))
 			require.Nil(t, err)
