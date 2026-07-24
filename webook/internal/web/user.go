@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/trace"
 
 	"webook/webook/internal/domain"
 	"webook/webook/internal/errs"
@@ -145,12 +146,15 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "密码不一致")
 		return
 	}
-	err := u.svc.SignUp(ctx, domain.User{
+	err := u.svc.SignUp(ctx.Request.Context(), domain.User{
 		Email:    req.Email,
 		PassWord: req.Password,
 	})
 	if err != nil {
 		if errors.Is(err, service.ErrUserDuplicateEmail) {
+			// 这是复用
+			span := trace.SpanFromContext(ctx.Request.Context())
+			span.AddEvent("邮件冲突")
 			ctx.String(http.StatusOK, "邮箱冲突")
 			return
 		}
@@ -188,6 +192,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 }
 
 func (u *UserHandler) RefreshToken(ctx *gin.Context) {
+	_ = ctx.Request.Context()
 	refreshToken := u.jwtHandler.ExtractToken(ctx)
 
 	var rc jwtHandler.UserClaims

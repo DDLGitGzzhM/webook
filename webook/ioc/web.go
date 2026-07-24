@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/ginx/middleware/logger"
@@ -51,6 +52,7 @@ func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.
 			Help:       "统计 GIN 的 HTTP 接口",
 			InstanceID: "my-instance-1",
 		}).Build(),
+		otelgin.Middleware("webook"),
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
 			AllowHeaders:     []string{"Content-Type", "Authorization"},

@@ -8,13 +8,14 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/repository/dao"
 )
 
-func InitDB(logger logger.Logger) *gorm.DB {
+func InitDB(l logger.Logger) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
@@ -24,7 +25,7 @@ func InitDB(logger logger.Logger) *gorm.DB {
 		return nil
 	}
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
-		Logger: glogger.New(gormLoggerFunc(logger.Debug), glogger.Config{
+		Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
 			// 慢查询阈值 50ms ,100ms
 			SlowThreshold:             time.Millisecond * 50,
 			IgnoreRecordNotFoundError: true,
@@ -53,6 +54,19 @@ func InitDB(logger logger.Logger) *gorm.DB {
 	pcb := newCallbacks()
 	// pcb.registerAll(db)
 	err = db.Use(pcb)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Use(tracing.NewPlugin(tracing.WithDBSystem("webook"),
+		tracing.WithQueryFormatter(func(query string) string {
+			l.Debug("", logger.Field{Key: "query", Value: query})
+			return query
+		}),
+		// 不要记录 metrics
+		tracing.WithoutMetrics(),
+		// 不要记录查询参数
+		tracing.WithoutQueryVariables()))
 	if err != nil {
 		panic(err)
 	}

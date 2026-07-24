@@ -19,3 +19,11 @@ ctx.Next() // 继续执行下一个中间件
 db.callBack()
 
 Join 查询，table是join在一起的 或者是  主表
+
+## tracing 
+
+### context 
+
+context.WithValue() 
+
+
