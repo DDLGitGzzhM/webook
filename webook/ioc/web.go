@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/ginx/middleware/logger"
@@ -30,6 +31,12 @@ func InitGin(mdl []gin.HandlerFunc, hdl *web.UserHandler, oauth *web.OAuth2Wecha
 
 func InitMiddleWare(limit ratelimit.Limiter, jwt jwtHandler.Handler, log pkgLog.Logger) []gin.HandlerFunc {
 	ginx.L = log
+	ginx.InitCounter(prometheus.CounterOpts{
+		Namespace: "geekbang_daming",
+		Subsystem: "webook",
+		Name:      "http_biz_code",
+		Help:      "HTTP 的业务错误码",
+	})
 	return []gin.HandlerFunc{
 		logger.NewMiddleWareBuilder(func(ctx context.Context, al *logger.Accesslog) {
 			log.Info("scall", pkgLog.Field{

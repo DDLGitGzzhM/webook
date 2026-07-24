@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"webook/webook/internal/domain"
+	"webook/webook/internal/errs"
 	"webook/webook/internal/service"
 	jwtHandler "webook/webook/internal/web/jwt"
 )
@@ -169,6 +170,13 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 	user, err := u.svc.Login(ctx, req.Email, req.Password)
+	if errors.Is(err, service.ErrInvalidPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: errs.UserInvalidOrPassword,
+			Msg:  "用户不存在或者密码错误",
+		})
+		return
+	}
 	if err != nil {
 		ctx.String(http.StatusOK, "登录失败 : %s", err.Error())
 		return
