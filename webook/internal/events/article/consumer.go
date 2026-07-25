@@ -30,6 +30,7 @@ func NewInteractiveReadEventConsumer(
 }
 
 func (r *InteractiveReadEventConsumer) Start() error {
+	// 在这里，上报 prometheus 就可以
 	cg, err := sarama.NewConsumerGroupFromClient("interactive", r.client)
 	if err != nil {
 		return err

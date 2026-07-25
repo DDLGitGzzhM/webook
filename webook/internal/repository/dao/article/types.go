@@ -3,6 +3,7 @@ package article
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var (
@@ -19,4 +20,5 @@ type ArticleDao interface {
 	Sync(ctx context.Context, art Article) (int64, error)
 	// SyncStatus 同库不同表，事务同步更新制作库与线上库状态
 	SyncStatus(ctx context.Context, uid, id int64, status uint8) error
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error)
 }

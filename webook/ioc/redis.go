@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	rlock "github.com/gotomicro/redis-lock"
 	redisv9 "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
@@ -17,4 +18,8 @@ func InitRedis() redisv9.Cmdable {
 	return redisv9.NewClient(&redisv9.Options{
 		Addr: cfg.Addr,
 	})
+}
+
+func InitRLockClient(cmd redisv9.Cmdable) *rlock.Client {
+	return rlock.NewClient(cmd)
 }

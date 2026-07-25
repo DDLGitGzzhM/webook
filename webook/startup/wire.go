@@ -34,9 +34,17 @@ var interactiveSvcProvider = wire.NewSet(
 	cache.NewRedisInteractiveCache,
 )
 
+var rankingServiceSet = wire.NewSet(
+	repository.NewCachedRankingRepository,
+	cache.NewRankingRedisCache,
+	cache.NewRankingLocalCache,
+	service.NewBatchRankingService,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
+		ioc.InitRLockClient,
 		ioc.InitKafka,
 		ioc.NewSyncProducer,
 		ioc.NewConsumers,
@@ -65,6 +73,9 @@ func InitWebServer() *App {
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
 
 		interactiveSvcProvider,
+		rankingServiceSet,
+		ioc.InitJobs,
+		ioc.InitRankingJob,
 
 		service.NewUserService,
 		service.NewArticleService,

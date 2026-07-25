@@ -61,7 +61,7 @@ func TestRankingTopN(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			artSvc, intrSvc := tc.mock(ctrl)
-			svc := NewBatchRankingService(artSvc, intrSvc)
+			svc := NewBatchRankingService(artSvc, intrSvc, nil).(*BatchRankingService)
 			// 为了测试
 			svc.batchSize = 3
 			svc.n = 3
