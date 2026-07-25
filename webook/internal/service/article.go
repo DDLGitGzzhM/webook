@@ -10,12 +10,15 @@ import (
 	"webook/webook/internal/repository/article"
 )
 
+//go:generate mockgen -source=article.go -package=svcmocks -destination=mock/article.mock.go IArticleService
 type IArticleService interface {
 	Save(ctx context.Context, art domain.Article) (int64, error)
 	Publish(ctx context.Context, art domain.Article) (int64, error)
 	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 	Withdraw(ctx context.Context, uid, id int64) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	// ListPub 只会取 start 七天内的数据
+	ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error)
 }
@@ -148,6 +151,12 @@ func (a ArticleService) List(
 	ctx context.Context, uid int64, offset int, limit int,
 ) ([]domain.Article, error) {
 	return a.repo.List(ctx, uid, offset, limit)
+}
+
+func (a ArticleService) ListPub(ctx context.Context,
+	start time.Time, offset, limit int) ([]domain.Article, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (a ArticleService) Publish(ctx context.Context, art domain.Article) (int64, error) {

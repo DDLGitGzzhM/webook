@@ -6,6 +6,7 @@ require (
 	github.com/IBM/sarama v1.60.0
 	github.com/aws/aws-sdk-go v1.45.27
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/ecodeclub/ekit v0.0.8-0.20231107102407-45c43657fd3c
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1

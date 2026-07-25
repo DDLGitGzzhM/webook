@@ -10,6 +10,9 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	trace2 "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/embedded"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // InitOTEL 初始化 OpenTelemetry，返回关闭函数。
@@ -26,6 +29,14 @@ func InitOTEL() func(ctx context.Context) {
 		panic(err)
 	}
 	otel.SetTracerProvider(tp)
+	newTp := &MyTracerProvider{
+		Enable:      true,
+		nopProvider: noop.NewTracerProvider(),
+		provider:    tp,
+	}
+	// 监听配置变更就可以了
+	otel.SetTracerProvider(newTp)
+
 	return func(ctx context.Context) {
 		_ = tp.Shutdown(ctx)
 	}
@@ -60,4 +71,40 @@ func newPropagator() propagation.TextMapPropagator {
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	)
+}
+
+type MyTracerProvider struct {
+	embedded.TracerProvider
+	// 改原子操作
+	Enable      bool
+	nopProvider trace2.TracerProvider
+	provider    trace2.TracerProvider
+}
+
+func (m *MyTracerProvider) Tracer(name string, options ...trace2.TracerOption) trace2.Tracer {
+	if m.Enable {
+		return m.provider.Tracer(name, options...)
+	}
+	return m.nopProvider.Tracer(name, options...)
+}
+
+func (m *MyTracerProvider) TracerV1(name string, options ...trace2.TracerOption) trace2.Tracer {
+	return &MyTracer{
+		nopTracer: m.nopProvider.Tracer(name, options...),
+		tracer:    m.provider.Tracer(name, options...),
+	}
+}
+
+type MyTracer struct {
+	embedded.Tracer
+	Enable    bool
+	nopTracer trace2.Tracer
+	tracer    trace2.Tracer
+}
+
+func (m *MyTracer) Start(ctx context.Context, spanName string, opts ...trace2.SpanStartOption) (context.Context, trace2.Span) {
+	if m.Enable {
+		return m.tracer.Start(ctx, spanName, opts...)
+	}
+	return m.nopTracer.Start(ctx, spanName, opts...)
 }
