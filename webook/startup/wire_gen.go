@@ -68,10 +68,16 @@ func InitWebServer() *App {
 	rlockClient := ioc.InitRLockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, loggerZapLogger)
 	cron := ioc.InitJobs(loggerZapLogger, rankingJob)
+	localFuncExecutor := ioc.InitLocalFuncExecutor(rankingService)
+	jobDAO := dao.NewGORMJobDAO(db)
+	jobRepository := repository.NewPreemptCronJobRepository(jobDAO)
+	jobService := service.NewCronJobService(jobRepository, loggerZapLogger)
+	scheduler := ioc.InitScheduler(loggerZapLogger, localFuncExecutor, jobService)
 	app := &App{
 		web:       engine,
 		consumers: v2,
 		cron:      cron,
+		scheduler: scheduler,
 	}
 	return app
 }
@@ -115,3 +121,5 @@ var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger, ioc.I
 var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)
 
 var rankingServiceSet = wire.NewSet(repository.NewCachedRankingRepository, cache.NewRankingRedisCache, cache.NewRankingLocalCache, service.NewBatchRankingService)
+
+var jobProviderSet = wire.NewSet(dao.NewGORMJobDAO, repository.NewPreemptCronJobRepository, service.NewCronJobService, ioc.InitLocalFuncExecutor, ioc.InitScheduler)

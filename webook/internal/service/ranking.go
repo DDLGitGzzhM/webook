@@ -26,6 +26,9 @@ type BatchRankingService struct {
 	n         int
 	// scoreFunc 不能返回负数
 	scoreFunc func(t time.Time, likeCnt int64) float64
+
+	// 负载
+	load int64
 }
 
 func NewBatchRankingService(artSvc IArticleService,

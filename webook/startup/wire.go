@@ -41,6 +41,14 @@ var rankingServiceSet = wire.NewSet(
 	service.NewBatchRankingService,
 )
 
+var jobProviderSet = wire.NewSet(
+	dao.NewGORMJobDAO,
+	repository.NewPreemptCronJobRepository,
+	service.NewCronJobService,
+	ioc.InitLocalFuncExecutor,
+	ioc.InitScheduler,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis,
@@ -74,6 +82,7 @@ func InitWebServer() *App {
 
 		interactiveSvcProvider,
 		rankingServiceSet,
+		jobProviderSet,
 		ioc.InitJobs,
 		ioc.InitRankingJob,
 

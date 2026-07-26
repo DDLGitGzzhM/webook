@@ -32,6 +32,13 @@ func main() {
 
 	app.Cron().Start()
 
+	// 基于 MySQL 的任务调度
+	go func() {
+		if err := app.Scheduler().Schedule(context.Background()); err != nil {
+			panic(err)
+		}
+	}()
+
 	server := app.Web()
 	//server := gin.Default()
 	//server.GET("/hello", func(ctx *gin.Context) {
