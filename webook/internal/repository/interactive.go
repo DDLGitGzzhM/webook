@@ -20,6 +20,7 @@ type InteractiveRepository interface {
 	Liked(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	AddRecord(ctx context.Context, aid int64, uid int64) error
+	LikeTop(ctx context.Context, biz string) ([]domain.Interactive, error)
 }
 
 type CachedInteractiveRepository struct {
@@ -86,9 +87,27 @@ func (c *CachedInteractiveRepository) IncrLike(
 	if err != nil {
 		return err
 	}
-	// 这种做法，你需要在 repository 层面上维持住事务
-	//c.dao.IncrLikeCnt()
-	return c.cache.IncrLikeCntIfPresent(ctx, biz, bizId)
+	// 这两个操作可以考虑合并为一个操作
+	err = c.cache.IncrLikeCntIfPresent(ctx, biz, bizId)
+	if err != nil {
+		return err
+	}
+	err = c.cache.IncrRankingIfPresent(ctx, biz, bizId)
+	if err == cache.RankingUpdateErr {
+		// 这是一个可选的，跟你的模型有关
+		val, err := c.dao.Get(ctx, biz, bizId)
+		if err != nil {
+			return err
+		}
+		return c.cache.SetRankingScore(ctx, biz, bizId, val.LikeCnt)
+	}
+	return err
+}
+
+func (c *CachedInteractiveRepository) LikeTop(
+	ctx context.Context, biz string,
+) ([]domain.Interactive, error) {
+	return c.cache.LikeTop(ctx, biz)
 }
 
 func (c *CachedInteractiveRepository) DecrLike(
