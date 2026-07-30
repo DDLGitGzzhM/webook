@@ -2,7 +2,6 @@ package article
 
 import (
 	"context"
-	"time"
 
 	"github.com/IBM/sarama"
 
@@ -47,7 +46,8 @@ func (r *HistoryReadEventConsumer) Start() error {
 
 // Consume 这个不是幂等的
 func (r *HistoryReadEventConsumer) Consume(msg *sarama.ConsumerMessage, t ReadEvent) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	return r.repo.AddRecord(ctx, t.Aid, t.Uid)
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	//defer cancel()
+	//return r.repo.Add(ctx, t.Aid, t.Uid)
+	panic("implement me")
 }

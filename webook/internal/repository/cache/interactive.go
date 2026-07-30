@@ -40,7 +40,6 @@ type InteractiveCache interface {
 	DecrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	// Get 查询缓存中数据
-	// 事实上，这里 liked 和 collected 是不需要缓存的
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Set(ctx context.Context, biz string, bizId int64, intr domain.Interactive) error
 	// IncrRankingIfPresent 如果排名数据存在就+1

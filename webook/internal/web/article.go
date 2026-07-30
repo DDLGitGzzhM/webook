@@ -37,7 +37,21 @@ func NewArticleHandler(
 	}
 }
 
+//type ArticleHandlerV2 struct {
+//	ArticleHandler
+//}
+//
+//func (a *ArticleHandlerV2) Like(ctx *gin.Context, req LikeReq, uc jwtHandler.UserClaims) (ginx.Result, error) {
+//	// 重写
+//}
+//
+//func (h *ArticleHandlerV2) RegisterRoutes(server *gin.Engine) {
+//	v1 := server.Group("/api/v2")
+//}
+
 func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
+	//v1 := server.Group("/api/v1")
+	//g := v1.Group("/articles")
 	g := server.Group("/articles")
 	g.POST("/edit", u.Edit)
 	g.POST("/publish", u.Publish)

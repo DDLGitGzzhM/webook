@@ -4,3 +4,9 @@ mock:
 	$(shell go env GOPATH)/bin/mockgen -source=webook/internal/repository/article/article.go -package=repomocks -destination=webook/internal/repository/mock/article.mock.go
 	$(shell go env GOPATH)/bin/mockgen -source=webook/internal/repository/article/article_reader.go -package=repomocks -destination=webook/internal/repository/mock/article_reader.mock.go
 	$(shell go env GOPATH)/bin/mockgen -source=webook/internal/repository/article/article_author.go -package=repomocks -destination=webook/internal/repository/mock/article_author.mock.go
+
+.PHONY: grpc
+grpc:
+	@protoc --go_out=webook/api/proto/gen --go_opt=paths=source_relative \
+		--go-grpc_out=webook/api/proto/gen --go-grpc_opt=paths=source_relative \
+		-I webook/api/proto webook/api/proto/intr/v1/intr.proto
