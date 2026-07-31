@@ -6,6 +6,8 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"webook/webook/migrator"
 )
 
 var ErrDataNotFound = gorm.ErrRecordNotFound
@@ -205,6 +207,17 @@ type Interactive struct {
 	LikeCnt    int64
 	Ctime      int64
 	Utime      int64
+}
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) CompareTo(dst migrator.Entity) bool {
+	if di, ok := dst.(Interactive); ok {
+		return di == i
+	}
+	return false
 }
 
 // UserLikeBiz 用户点赞记录
