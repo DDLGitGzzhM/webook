@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 
+	intrv1 "webook/webook/api/proto/gen/intr/v1"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/logger"
@@ -20,13 +21,13 @@ import (
 type ArticleHandler struct {
 	svc     service.IArticleService
 	l       logger.Logger
-	intrSvc service.InteractiveService
+	intrSvc intrv1.InteractiveServiceClient
 	biz     string
 }
 
 func NewArticleHandler(
 	svc service.IArticleService,
-	intrSvc service.InteractiveService,
+	intrSvc intrv1.InteractiveServiceClient,
 	l logger.Logger,
 ) *ArticleHandler {
 	return &ArticleHandler{
@@ -78,9 +79,13 @@ func (u *ArticleHandler) Like(
 ) (ginx.Result, error) {
 	var err error
 	if req.Like {
-		err = u.intrSvc.Like(ctx, u.biz, req.Id, uc.UserId)
+		_, err = u.intrSvc.Like(ctx, &intrv1.LikeRequest{
+			Biz: u.biz, BizId: req.Id, Uid: uc.UserId,
+		})
 	} else {
-		err = u.intrSvc.CancelLike(ctx, u.biz, req.Id, uc.UserId)
+		_, err = u.intrSvc.CancelLike(ctx, &intrv1.CancelLikeRequest{
+			Biz: u.biz, BizId: req.Id, Uid: uc.UserId,
+		})
 	}
 
 	if err != nil {
@@ -106,9 +111,9 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 
 	uc := ctx.MustGet("claims").(*jwtHandler.UserClaims)
 	var (
-		eg   errgroup.Group
-		art  domain.Article
-		intr domain.Interactive
+		eg      errgroup.Group
+		art     domain.Article
+		getResp *intrv1.GetResponse
 	)
 	eg.Go(func() error {
 		var e error
@@ -118,7 +123,9 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	eg.Go(func() error {
 		// 这个地方可以容忍错误
 		var e error
-		intr, e = u.intrSvc.Get(ctx, u.biz, id, uc.UserId)
+		getResp, e = u.intrSvc.Get(ctx, &intrv1.GetRequest{
+			Biz: u.biz, BizId: id, Uid: uc.UserId,
+		})
 		// 这种是容错的写法
 		//if e != nil {
 		//	// 记录日志
@@ -141,13 +148,17 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	// 阅读计数改为通过 Kafka 异步消费更新，避免在主链路直接打库
 	//go func() {
 	//	// 你都异步了，怎么还说有巨大的压力呢？
-	//	er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
+	//	_, er := u.intrSvc.IncrReadCnt(ctx, &intrv1.IncrReadCntRequest{
+	//		Biz: u.biz, BizId: art.Id,
+	//	})
 	//	if er != nil {
 	//		u.l.Error("增加阅读计数失败",
 	//			logger.Int64("aid", art.Id),
 	//			logger.Error(er.Error()))
 	//	}
 	//}()
+
+	intr := getResp.GetIntr()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
@@ -159,11 +170,11 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Author:     art.Author.Name,
 			Ctime:      art.Ctime.Format(time.DateTime),
 			Utime:      art.Utime.Format(time.DateTime),
-			Liked:      intr.Liked,
-			Collected:  intr.Collected,
-			LikeCnt:    intr.LikeCnt,
-			ReadCnt:    intr.ReadCnt,
-			CollectCnt: intr.CollectCnt,
+			Liked:      intr.GetLiked(),
+			Collected:  intr.GetCollected(),
+			LikeCnt:    intr.GetLikeCnt(),
+			ReadCnt:    intr.GetReadCnt(),
+			CollectCnt: intr.GetCollectCnt(),
 		},
 	})
 }

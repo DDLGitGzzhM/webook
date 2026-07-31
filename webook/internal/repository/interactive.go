@@ -170,6 +170,7 @@ func (c *CachedInteractiveRepository) Get(
 
 func (c *CachedInteractiveRepository) toDomain(intr dao.Interactive) domain.Interactive {
 	return domain.Interactive{
+		Biz:        intr.Biz,
 		BizId:      intr.BizId,
 		LikeCnt:    intr.LikeCnt,
 		CollectCnt: intr.CollectCnt,

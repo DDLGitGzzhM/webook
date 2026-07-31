@@ -57,14 +57,15 @@ func InitWebServer() *App {
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
-	articleHandler := web.NewArticleHandler(iArticleService, interactiveService, loggerZapLogger)
+	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, loggerZapLogger)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, loggerZapLogger)
 	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
 	rankingRedisCache := cache.NewRankingRedisCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
 	rankingRepository := repository.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
-	rankingService := service.NewBatchRankingService(iArticleService, interactiveService, rankingRepository)
+	rankingService := service.NewBatchRankingService(iArticleService, rankingRepository, interactiveServiceClient)
 	rlockClient := ioc.InitRLockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, loggerZapLogger)
 	cron := ioc.InitJobs(loggerZapLogger, rankingJob)
@@ -98,7 +99,8 @@ func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
-	articleHandler := web.NewArticleHandler(iArticleService, interactiveService, loggerZapLogger)
+	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, loggerZapLogger)
 	return articleHandler
 }
 

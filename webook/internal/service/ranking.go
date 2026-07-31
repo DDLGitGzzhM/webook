@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
 	"github.com/ecodeclub/ekit/queue"
 	"github.com/ecodeclub/ekit/slice"
 
+	intrv1 "webook/webook/api/proto/gen/intr/v1"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/repository"
 )
@@ -20,7 +22,7 @@ type RankingService interface {
 
 type BatchRankingService struct {
 	artSvc    IArticleService
-	intrSvc   InteractiveService
+	intrSvc   intrv1.InteractiveServiceClient
 	repo      repository.RankingRepository
 	batchSize int
 	n         int
@@ -32,8 +34,8 @@ type BatchRankingService struct {
 }
 
 func NewBatchRankingService(artSvc IArticleService,
-	intrSvc InteractiveService,
-	repo repository.RankingRepository) RankingService {
+	repo repository.RankingRepository,
+	intrSvc intrv1.InteractiveServiceClient) RankingService {
 	return &BatchRankingService{
 		artSvc:    artSvc,
 		intrSvc:   intrSvc,
@@ -85,24 +87,32 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 		if err != nil {
 			return nil, err
 		}
+		if len(arts) == 0 {
+			break
+		}
 		ids := slice.Map[domain.Article, int64](arts,
 			func(idx int, src domain.Article) int64 {
 				return src.Id
 			})
 		// 要去找到对应的点赞数据
-		intrs, err := svc.intrSvc.GetByIds(ctx, "article", ids)
+		intrs, err := svc.intrSvc.GetByIds(ctx, &intrv1.GetByIdsRequest{
+			Biz: "article", Ids: ids,
+		})
 		if err != nil {
 			return nil, err
+		}
+		if len(intrs.Intrs) == 0 {
+			return nil, errors.New("没有数据")
 		}
 		// 合并计算 score
 		// 排序
 		for _, art := range arts {
-			intr := intrs[art.Id]
+			intr := intrs.Intrs[art.Id]
 			//if !ok {
 			//	// 你都没有，肯定不可能是热榜
 			//	continue
 			//}
-			score := svc.scoreFunc(art.Utime, intr.LikeCnt)
+			score := svc.scoreFunc(art.Utime, intr.GetLikeCnt())
 			// 我要考虑，我这个 score 在不在前一百名
 			// 拿到热度最低的
 			err = topN.Enqueue(Score{

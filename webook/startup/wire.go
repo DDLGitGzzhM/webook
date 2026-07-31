@@ -81,6 +81,7 @@ func InitWebServer() *App {
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
 
 		interactiveSvcProvider,
+		ioc.InitIntrGRPCClient,
 		rankingServiceSet,
 		jobProviderSet,
 		ioc.InitJobs,
@@ -131,6 +132,7 @@ func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
 		logger.NewZapLogger,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		interactiveSvcProvider,
+		ioc.InitIntrGRPCClient,
 		article.NewNoOpProducer,
 		service.NewArticleService,
 		web.NewArticleHandler,
