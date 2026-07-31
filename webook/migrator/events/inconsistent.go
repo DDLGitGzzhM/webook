@@ -16,6 +16,10 @@ type InconsistentEvent struct {
 	// 因为他要去 DEBUG
 	// 这个是可选的
 	Type string
+
+	// 事件里面带 base 的数据
+	// 修复数据用这里的去修，这种做法是不行的，因为有严重的并发问题
+	Columns map[string]any
 }
 
 const (
