@@ -2,6 +2,7 @@ package main
 
 import (
 	"webook/webook/internal/events"
+	"webook/webook/internal/pkg/ginx"
 	"webook/webook/pkg/grpcx"
 )
 
@@ -10,4 +11,5 @@ type App struct {
 	// 核心就是为了控制生命周期
 	server    *grpcx.Server
 	consumers []events.Consumer
+	webAdmin  *ginx.Server
 }

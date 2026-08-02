@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/google/wire"
+
 	"webook/webook/interactive/grpc"
 	"webook/webook/interactive/ioc"
 	"webook/webook/internal/events/article"
@@ -20,27 +21,37 @@ import (
 // Injectors from wire.go:
 
 func InitAPP() *App {
-	db := ioc.InitDB()
+	logger := ioc.InitLogger()
+	srcDB := ioc.InitSRC(logger)
+	dstDB := ioc.InitDST(logger)
+	doubleWritePool := ioc.InitDoubleWritePool(srcDB, dstDB)
+	db := ioc.InitBizDB(doubleWritePool)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	cmdable := ioc.InitRedis()
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	logger := ioc.InitLogger()
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
 	server := ioc.InitGRPCxServer(interactiveServiceServer)
 	client := ioc.InitKafka()
 	interactiveReadEventBatchConsumer := article.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
-	v := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, client)
+	v := ioc.NewConsumers(interactiveReadEventBatchConsumer, consumer)
+	syncProducer := ioc.InitSyncProducer(client)
+	producer := ioc.InitMigradatorProducer(syncProducer)
+	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
 	app := &App{
 		server:    server,
 		consumers: v,
+		webAdmin:  ginxServer,
 	}
 	return app
 }
 
 // wire.go:
 
-var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitKafka, ioc.InitRedis)
+var thirdPartySet = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.InitDoubleWritePool, ioc.InitLogger, ioc.InitKafka, ioc.InitSyncProducer, ioc.InitRedis)
 
 var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)
+
+var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer)

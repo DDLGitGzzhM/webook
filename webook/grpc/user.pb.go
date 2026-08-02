@@ -21,11 +21,75 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Gender int32
+
+const (
+	Gender_Unknown Gender = 0
+	Gender_Female  Gender = 1
+	Gender_Male    Gender = 2
+)
+
+// Enum value maps for Gender.
+var (
+	Gender_name = map[int32]string{
+		0: "Unknown",
+		1: "Female",
+		2: "Male",
+	}
+	Gender_value = map[string]int32{
+		"Unknown": 0,
+		"Female":  1,
+		"Male":    2,
+	}
+)
+
+func (x Gender) Enum() *Gender {
+	p := new(Gender)
+	*p = x
+	return p
+}
+
+func (x Gender) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Gender) Descriptor() protoreflect.EnumDescriptor {
+	return file_user_proto_enumTypes[0].Descriptor()
+}
+
+func (Gender) Type() protoreflect.EnumType {
+	return &file_user_proto_enumTypes[0]
+}
+
+func (x Gender) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Gender.Descriptor instead.
+func (Gender) EnumDescriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{0}
+}
+
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Age           int64                  `protobuf:"varint,3,opt,name=age,proto3" json:"age,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 编号可以不连续
+	Avatar string `protobuf:"bytes,4,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	// 即便要删除字段，
+	// 也不要复用被删除字段的编号
+	Attributes map[string]string `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// 数组
+	Nicknames []string `protobuf:"bytes,6,rep,name=nicknames,proto3" json:"nicknames,omitempty"`
+	// 可选的
+	Age     *int32   `protobuf:"varint,7,opt,name=age,proto3,oneof" json:"age,omitempty"`
+	Address *Address `protobuf:"bytes,8,opt,name=address,proto3" json:"address,omitempty"`
+	// Types that are valid to be assigned to Contacts:
+	//
+	//	*User_Email
+	//	*User_Phone
+	Contacts      isUser_Contacts `protobuf_oneof:"contacts"`
+	Gender        Gender          `protobuf:"varint,11,opt,name=gender,proto3,enum=Gender" json:"gender,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,21 +138,271 @@ func (x *User) GetName() string {
 	return ""
 }
 
-func (x *User) GetAge() int64 {
+func (x *User) GetAvatar() string {
 	if x != nil {
-		return x.Age
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *User) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+func (x *User) GetNicknames() []string {
+	if x != nil {
+		return x.Nicknames
+	}
+	return nil
+}
+
+func (x *User) GetAge() int32 {
+	if x != nil && x.Age != nil {
+		return *x.Age
 	}
 	return 0
+}
+
+func (x *User) GetAddress() *Address {
+	if x != nil {
+		return x.Address
+	}
+	return nil
+}
+
+func (x *User) GetContacts() isUser_Contacts {
+	if x != nil {
+		return x.Contacts
+	}
+	return nil
+}
+
+func (x *User) GetEmail() string {
+	if x != nil {
+		if x, ok := x.Contacts.(*User_Email); ok {
+			return x.Email
+		}
+	}
+	return ""
+}
+
+func (x *User) GetPhone() string {
+	if x != nil {
+		if x, ok := x.Contacts.(*User_Phone); ok {
+			return x.Phone
+		}
+	}
+	return ""
+}
+
+func (x *User) GetGender() Gender {
+	if x != nil {
+		return x.Gender
+	}
+	return Gender_Unknown
+}
+
+type isUser_Contacts interface {
+	isUser_Contacts()
+}
+
+type User_Email struct {
+	Email string `protobuf:"bytes,9,opt,name=email,proto3,oneof"`
+}
+
+type User_Phone struct {
+	Phone string `protobuf:"bytes,10,opt,name=phone,proto3,oneof"`
+}
+
+func (*User_Email) isUser_Contacts() {}
+
+func (*User_Phone) isUser_Contacts() {}
+
+type Address struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Province      string                 `protobuf:"bytes,1,opt,name=province,proto3" json:"province,omitempty"`
+	City          string                 `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Address) Reset() {
+	*x = Address{}
+	mi := &file_user_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Address) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Address) ProtoMessage() {}
+
+func (x *Address) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Address.ProtoReflect.Descriptor instead.
+func (*Address) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Address) GetProvince() string {
+	if x != nil {
+		return x.Province
+	}
+	return ""
+}
+
+func (x *Address) GetCity() string {
+	if x != nil {
+		return x.City
+	}
+	return ""
+}
+
+type GetByIdReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetByIdReq) Reset() {
+	*x = GetByIdReq{}
+	mi := &file_user_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetByIdReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetByIdReq) ProtoMessage() {}
+
+func (x *GetByIdReq) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetByIdReq.ProtoReflect.Descriptor instead.
+func (*GetByIdReq) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetByIdReq) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetByIdResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetByIdResp) Reset() {
+	*x = GetByIdResp{}
+	mi := &file_user_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetByIdResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetByIdResp) ProtoMessage() {}
+
+func (x *GetByIdResp) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetByIdResp.ProtoReflect.Descriptor instead.
+func (*GetByIdResp) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetByIdResp) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
 }
 
 var File_user_proto protoreflect.FileDescriptor
 
 var file_user_proto_rawDesc = string([]byte{
-	0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x3c, 0x0a, 0x04,
-	0x55, 0x73, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03,
-	0x52, 0x02, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x61, 0x67, 0x65, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x61, 0x67, 0x65, 0x42, 0x0d, 0x5a, 0x0b, 0x77, 0x65,
+	0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xf6, 0x02, 0x0a,
+	0x04, 0x55, 0x73, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x61, 0x76, 0x61,
+	0x74, 0x61, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x61, 0x76, 0x61, 0x74, 0x61,
+	0x72, 0x12, 0x35, 0x0a, 0x0a, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x18,
+	0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x2e, 0x41, 0x74, 0x74,
+	0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a, 0x61, 0x74,
+	0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x6e, 0x69, 0x63, 0x6b,
+	0x6e, 0x61, 0x6d, 0x65, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x09, 0x52, 0x09, 0x6e, 0x69, 0x63,
+	0x6b, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x12, 0x15, 0x0a, 0x03, 0x61, 0x67, 0x65, 0x18, 0x07, 0x20,
+	0x01, 0x28, 0x05, 0x48, 0x01, 0x52, 0x03, 0x61, 0x67, 0x65, 0x88, 0x01, 0x01, 0x12, 0x22, 0x0a,
+	0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x08,
+	0x2e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x12, 0x16, 0x0a, 0x05, 0x65, 0x6d, 0x61, 0x69, 0x6c, 0x18, 0x09, 0x20, 0x01, 0x28, 0x09,
+	0x48, 0x00, 0x52, 0x05, 0x65, 0x6d, 0x61, 0x69, 0x6c, 0x12, 0x16, 0x0a, 0x05, 0x70, 0x68, 0x6f,
+	0x6e, 0x65, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x05, 0x70, 0x68, 0x6f, 0x6e,
+	0x65, 0x12, 0x1f, 0x0a, 0x06, 0x67, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x18, 0x0b, 0x20, 0x01, 0x28,
+	0x0e, 0x32, 0x07, 0x2e, 0x47, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x52, 0x06, 0x67, 0x65, 0x6e, 0x64,
+	0x65, 0x72, 0x1a, 0x3d, 0x0a, 0x0f, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73,
+	0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38,
+	0x01, 0x42, 0x0a, 0x0a, 0x08, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x63, 0x74, 0x73, 0x42, 0x06, 0x0a,
+	0x04, 0x5f, 0x61, 0x67, 0x65, 0x22, 0x39, 0x0a, 0x07, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
+	0x12, 0x1a, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x6e, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x6e, 0x63, 0x65, 0x12, 0x12, 0x0a, 0x04,
+	0x63, 0x69, 0x74, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x63, 0x69, 0x74, 0x79,
+	0x22, 0x1c, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x42, 0x79, 0x49, 0x64, 0x52, 0x65, 0x71, 0x12, 0x0e,
+	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x22, 0x28,
+	0x0a, 0x0b, 0x47, 0x65, 0x74, 0x42, 0x79, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x12, 0x19, 0x0a,
+	0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x05, 0x2e, 0x55, 0x73,
+	0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x2a, 0x2b, 0x0a, 0x06, 0x47, 0x65, 0x6e, 0x64,
+	0x65, 0x72, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12,
+	0x0a, 0x0a, 0x06, 0x46, 0x65, 0x6d, 0x61, 0x6c, 0x65, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x4d,
+	0x61, 0x6c, 0x65, 0x10, 0x02, 0x32, 0x33, 0x0a, 0x0b, 0x55, 0x73, 0x65, 0x72, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x12, 0x24, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x42, 0x79, 0x49, 0x64, 0x12,
+	0x0b, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x79, 0x49, 0x64, 0x52, 0x65, 0x71, 0x1a, 0x0c, 0x2e, 0x47,
+	0x65, 0x74, 0x42, 0x79, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x42, 0x0d, 0x5a, 0x0b, 0x77, 0x65,
 	0x62, 0x6f, 0x6f, 0x6b, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x33,
 })
@@ -105,16 +419,28 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_user_proto_goTypes = []any{
-	(*User)(nil), // 0: User
+	(Gender)(0),         // 0: Gender
+	(*User)(nil),        // 1: User
+	(*Address)(nil),     // 2: Address
+	(*GetByIdReq)(nil),  // 3: GetByIdReq
+	(*GetByIdResp)(nil), // 4: GetByIdResp
+	nil,                 // 5: User.AttributesEntry
 }
 var file_user_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	5, // 0: User.attributes:type_name -> User.AttributesEntry
+	2, // 1: User.address:type_name -> Address
+	0, // 2: User.gender:type_name -> Gender
+	1, // 3: GetByIdResp.user:type_name -> User
+	3, // 4: UserService.GetById:input_type -> GetByIdReq
+	4, // 5: UserService.GetById:output_type -> GetByIdResp
+	5, // [5:6] is the sub-list for method output_type
+	4, // [4:5] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_user_proto_init() }
@@ -122,18 +448,23 @@ func file_user_proto_init() {
 	if File_user_proto != nil {
 		return
 	}
+	file_user_proto_msgTypes[0].OneofWrappers = []any{
+		(*User_Email)(nil),
+		(*User_Phone)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   1,
+			NumEnums:      1,
+			NumMessages:   5,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_user_proto_goTypes,
 		DependencyIndexes: file_user_proto_depIdxs,
+		EnumInfos:         file_user_proto_enumTypes,
 		MessageInfos:      file_user_proto_msgTypes,
 	}.Build()
 	File_user_proto = out.File

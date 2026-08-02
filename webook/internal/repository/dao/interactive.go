@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"webook/webook/migrator"
+	"webook/webook/pkg/migrator"
 )
 
 var ErrDataNotFound = gorm.ErrRecordNotFound

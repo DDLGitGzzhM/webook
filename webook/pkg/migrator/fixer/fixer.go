@@ -1,3 +1,5 @@
+//go:build live
+
 package fixer
 
 import (
@@ -7,10 +9,11 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"webook/webook/migrator"
-	"webook/webook/migrator/events"
+	"webook/webook/pkg/migrator"
+	"webook/webook/pkg/migrator/events"
 )
 
+// Fixer 这个是课堂演示
 type Fixer[T migrator.Entity] struct {
 	base    *gorm.DB
 	target  *gorm.DB

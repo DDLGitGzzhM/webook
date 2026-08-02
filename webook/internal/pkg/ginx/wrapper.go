@@ -31,6 +31,20 @@ func reportCode(code int) {
 	vector.WithLabelValues(strconv.Itoa(code)).Inc()
 }
 
+func Wrap(fn func(ctx *gin.Context) (Result, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		res, err := fn(ctx)
+		if err != nil {
+			L.Error("处理业务逻辑出错",
+				logger.String("path", ctx.Request.URL.Path),
+				logger.String("route", ctx.FullPath()),
+				logger.Error(err.Error()))
+		}
+		reportCode(res.Code)
+		ctx.JSON(http.StatusOK, res)
+	}
+}
+
 func WrapToken[C jwt.Claims](fn func(ctx *gin.Context, uc C) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, ok := ctx.Get("claims")

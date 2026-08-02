@@ -14,9 +14,9 @@ type MySQL2Mongo struct {
 
 //func (d *MySQL2Mongo) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 //	switch d.pattern.Load() {
-//	case patternSrcOnly, patternSrcFirst:
+//	case PatternSrcOnly, PatternSrcFirst:
 //		return d.db.QueryContext(ctx, query, args...)
-//	case patternDstOnly, patternDstFirst:
+//	case PatternDstOnly, PatternDstFirst:
 //		return d.mdb.Collection("xxx").FindOne()
 //	default:
 //		panic("未知的双写模式")

@@ -2,8 +2,51 @@ syntax = "proto3";
 
 option go_package = "webook/grpc";
 
+// 不正确的写法
+// option go_package = "grpc";
+
 message User {
   int64 id = 1;
   string name = 2;
-  int64 age = 3;
+
+  // 编号可以不连续
+  string avatar = 4;
+  // 即便要删除字段，
+  // 也不要复用被删除字段的编号
+  map<string, string> attributes = 5;
+  // 数组
+  repeated string nicknames = 6;
+  // 可选的
+  optional int32 age = 7;
+  Address address = 8;
+
+  oneof contacts {
+    string email = 9;
+    string phone = 10;
+  }
+
+  Gender gender = 11;
+}
+
+enum Gender {
+  Unknown = 0;
+  Female = 1;
+  Male = 2;
+}
+
+message Address {
+  string province = 1;
+  string city = 2;
+}
+
+service UserService {
+  rpc GetById(GetByIdReq) returns (GetByIdResp);
+}
+
+message GetByIdReq {
+  int64 id = 1;
+}
+
+message GetByIdResp {
+  User user = 1;
 }
