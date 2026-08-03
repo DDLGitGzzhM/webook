@@ -2,6 +2,9 @@ package validator
 
 import (
 	"context"
+	"database/sql"
+	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/ecodeclub/ekit/slice"
@@ -12,6 +15,14 @@ import (
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/pkg/migrator"
 	"webook/webook/pkg/migrator/events"
+)
+
+const (
+	defaultThreadsRunningThreshold = 50
+	defaultPoolBusyRatio           = 0.8
+	defaultHeapAllocThreshold      = 512 << 20 // 512MB
+	defaultLoadCheckInterval       = time.Second
+	defaultHighLoadBackoff         = time.Second
 )
 
 // Validator T 必须实现了 Entity 接口
@@ -29,6 +40,17 @@ type Validator[T migrator.Entity] struct {
 	batchSize int
 
 	highLoad *atomicx.Value[bool]
+	// 高负载时挂起多久再重新检查
+	highLoadBackoff time.Duration
+	// 多久采样一次负载
+	loadCheckInterval time.Duration
+
+	// MySQL Threads_running 超过该值视为 DB 高负载
+	threadsRunningThreshold int
+	// 连接池 InUse/MaxOpen 超过该比例视为高负载
+	poolBusyRatio float64
+	// 本进程 HeapAlloc 超过该值视为内存高负载
+	heapAllocThreshold uint64
 
 	// 在这里加字段，比如说，在查询 base 根据什么列来排序，在 target 的时候，根据什么列来查询数据
 	// 最极端的情况，是这样
@@ -47,16 +69,20 @@ func NewValidator[T migrator.Entity](
 	direction string,
 	l logger.Logger,
 	p events.Producer) *Validator[T] {
-	highLoad := atomicx.NewValueOf[bool](false)
-	go func() {
-		// 在这里，去查询数据库的状态
-		// 你的校验代码不太可能是性能瓶颈，性能瓶颈一般在数据库
-		// 你也可以结合本地的 CPU，内存负载来判定
-	}()
-	res := &Validator[T]{base: base, target: target,
-		l: l, p: p, direction: direction,
-		batchSize: 100,
-		highLoad:  highLoad}
+	res := &Validator[T]{
+		base:                    base,
+		target:                  target,
+		l:                       l,
+		p:                       p,
+		direction:               direction,
+		batchSize:               100,
+		highLoad:                atomicx.NewValueOf[bool](false),
+		highLoadBackoff:         defaultHighLoadBackoff,
+		loadCheckInterval:       defaultLoadCheckInterval,
+		threadsRunningThreshold: defaultThreadsRunningThreshold,
+		poolBusyRatio:           defaultPoolBusyRatio,
+		heapAllocThreshold:      defaultHeapAllocThreshold,
+	}
 	res.fromBase = res.fullFromBase
 	return res
 }
@@ -77,6 +103,9 @@ func (v *Validator[T]) Incr() *Validator[T] {
 }
 
 func (v *Validator[T]) Validate(ctx context.Context) error {
+	// 负载监控跟随校验生命周期：ctx 取消后停止，避免 New 时起永不退出的 goroutine
+	go v.monitorLoad(ctx)
+
 	var eg errgroup.Group
 	eg.Go(func() error {
 		v.validateBaseToTarget(ctx)
@@ -88,6 +117,106 @@ func (v *Validator[T]) Validate(ctx context.Context) error {
 		return nil
 	})
 	return eg.Wait()
+}
+
+// monitorLoad 周期性采样 DB / 本机负载，写入 highLoad。
+// 高负载是可逆状态：恢复后校验会继续，不会永久卡住。
+func (v *Validator[T]) monitorLoad(ctx context.Context) {
+	ticker := time.NewTicker(v.loadCheckInterval)
+	defer ticker.Stop()
+	v.refreshHighLoad()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			v.refreshHighLoad()
+		}
+	}
+}
+
+func (v *Validator[T]) refreshHighLoad() {
+	busy := v.isDBHighLoad(v.base) ||
+		v.isDBHighLoad(v.target) ||
+		isMemHighLoad(runtimeHeapAlloc(), v.heapAllocThreshold)
+	prev := v.highLoad.Load()
+	v.highLoad.Store(busy)
+	if busy && !prev {
+		v.l.Warn("校验进入高负载挂起")
+	}
+	if !busy && prev {
+		v.l.Info("校验负载恢复，继续执行")
+	}
+}
+
+func (v *Validator[T]) isDBHighLoad(db *gorm.DB) bool {
+	if db == nil {
+		return false
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return false
+	}
+	if isPoolHighLoad(sqlDB.Stats(), v.poolBusyRatio) {
+		return true
+	}
+	threads, ok := queryThreadsRunning(db)
+	if !ok {
+		return false
+	}
+	return isThreadsHighLoad(threads, v.threadsRunningThreshold)
+}
+
+// waitIfHighLoad 在高负载时挂起；ctx 取消返回 true，表示调用方应退出。
+func (v *Validator[T]) waitIfHighLoad(ctx context.Context) bool {
+	for v.highLoad.Load() {
+		select {
+		case <-ctx.Done():
+			return true
+		case <-time.After(v.highLoadBackoff):
+		}
+	}
+	return false
+}
+
+func isPoolHighLoad(stats sql.DBStats, ratio float64) bool {
+	if stats.MaxOpenConnections <= 0 || ratio <= 0 {
+		return false
+	}
+	return float64(stats.InUse)/float64(stats.MaxOpenConnections) >= ratio
+}
+
+func isThreadsHighLoad(threads, threshold int) bool {
+	return threshold > 0 && threads >= threshold
+}
+
+func isMemHighLoad(heapAlloc, threshold uint64) bool {
+	return threshold > 0 && heapAlloc >= threshold
+}
+
+func runtimeHeapAlloc() uint64 {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	return ms.HeapAlloc
+}
+
+type mysqlStatusRow struct {
+	VariableName string `gorm:"column:Variable_name"`
+	Value        string `gorm:"column:Value"`
+}
+
+// queryThreadsRunning 查询 MySQL Threads_running；非 MySQL 或失败时 ok=false。
+func queryThreadsRunning(db *gorm.DB) (int, bool) {
+	var row mysqlStatusRow
+	err := db.Raw("SHOW GLOBAL STATUS LIKE 'Threads_running'").Scan(&row).Error
+	if err != nil || row.Value == "" {
+		return 0, false
+	}
+	n, err := strconv.Atoi(row.Value)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
 
 // validateBaseToTargetV1 批量写法，第十三周答案
@@ -174,8 +303,8 @@ func (v *Validator[T]) toMap(data []T) map[int64]T {
 func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 	offset := 0
 	for {
-		if v.highLoad.Load() {
-			// 挂起
+		if v.waitIfHighLoad(ctx) {
+			return
 		}
 
 		// 找到了 base 中的数据
@@ -275,6 +404,9 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 	// 理论上来说，就是 target 里面一条条找
 	offset := 0
 	for {
+		if v.waitIfHighLoad(ctx) {
+			return
+		}
 		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
 
 		var dstTs []T
