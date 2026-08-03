@@ -58,7 +58,6 @@ func InitWebServer() *App {
 		ioc.NewConsumers,
 
 		article.NewKafkaProducer,
-		article.NewInteractiveReadEventBatchConsumer,
 
 		dao.NewUserDAO,
 		articledao.NewArticleGormDao,
@@ -80,8 +79,13 @@ func InitWebServer() *App {
 		wire.Bind(new(repository.CodeRepository), new(*repository.CacheCodeRepository)),
 		wire.Bind(new(articlerepo.ArticleRepository), new(*articlerepo.CachedArticleRepository)),
 
-		interactiveSvcProvider,
-		ioc.InitIntrGRPCClient,
+		// 流量控制用的
+		//interactiveSvcProvider,
+		//ioc.InitIntrGRPCClient,
+
+		// 放一起，启用了 etcd 作为服务发现
+		ioc.InitEtcd,
+		ioc.InitIntrGRPCClientV1,
 		rankingServiceSet,
 		jobProviderSet,
 		ioc.InitJobs,

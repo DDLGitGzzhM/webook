@@ -27,7 +27,7 @@ func TestServer(t *testing.T) {
 func TestClient(t *testing.T) {
 	// 早期都是用 WithInsecure 选项，现在已经不用了
 	//conn, err := grpc.Dial(":8090", grpc.WithInsecure())
-	conn, err := grpc.Dial(":8090",
+	conn, err := grpc.Dial("localhost:8090",
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	assert.NoError(t, err)
 	client := NewUserServiceClient(conn)

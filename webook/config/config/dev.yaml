@@ -9,9 +9,16 @@ kafka:
   addrs:
     - "localhost:9094"
 
+etcd:
+  endpoints:
+    - "localhost:12379"
+
 grpc:
   client:
     intr:
+      # etcd 服务发现用的服务名（InitIntrGRPCClientV1）
+      name: "interactive"
+      # 流量控制 client 用的直连地址（InitIntrGRPCClient / 集成测试）
       addr: "localhost:8090"
       secure: false
       threshold: 100

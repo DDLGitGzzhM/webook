@@ -2,109 +2,226 @@ package grpc
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/naming/endpoints"
-	"go.etcd.io/etcd/client/v3/naming/resolver"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+	etcdv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/naming/endpoints"
+	"go.etcd.io/etcd/client/v3/naming/resolver"
+	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/balancer/weightedroundrobin"
+	"google.golang.org/grpc/credentials/insecure"
+
+	_ "webook/webook/pkg/grpcx/balancer/wrr"
+	"webook/webook/pkg/netx"
 )
 
 type EtcdTestSuite struct {
 	suite.Suite
-	cli *clientv3.Client
+	client *etcdv3.Client
 }
 
 func (s *EtcdTestSuite) SetupSuite() {
-	cli, err := clientv3.NewFromURL("http://localhost:12379")
-	assert.NoError(s.T(), err)
-	s.cli = cli
+	client, err := etcdv3.New(etcdv3.Config{
+		Endpoints: []string{"localhost:12379"},
+	})
+	require.NoError(s.T(), err)
+	s.client = client
 }
 
-// TestEtcdServer 测试 ETCD 作为服务注册与发现中心
-// 这是服务端的注册过程
-func (s *EtcdTestSuite) TestEtcdServer() {
-	t := s.T()
-	em, err := endpoints.NewManager(s.cli,
-		"service/user")
-	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	// 要以 /service/user 为前缀
-	addr := "127.0.0.1:8090"
+func (s *EtcdTestSuite) TestCustomRoundRobinClient() {
+	bd, err := resolver.NewBuilder(s.client)
+	require.NoError(s.T(), err)
+	svcCfg := `
+{
+    "loadBalancingConfig": [
+        {
+            "custom_wrr": {}
+        }
+    ]
+}
+`
+	cc, err := grpc.Dial("etcd:///service/user",
+		grpc.WithResolvers(bd),
+		// 在这里使用的负载均衡器
+		grpc.WithDefaultServiceConfig(svcCfg),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(s.T(), err)
+	client := NewUserServiceClient(cc)
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		resp, err := client.GetById(ctx, &GetByIdReq{
+			Id: 123,
+		})
+		cancel()
+		require.NoError(s.T(), err)
+		s.T().Log(resp.User)
+	}
+}
+
+func (s *EtcdTestSuite) TestWeightedRoundRobinClient() {
+	bd, err := resolver.NewBuilder(s.client)
+	require.NoError(s.T(), err)
+	svcCfg := `
+{
+    "loadBalancingConfig": [
+        {
+            "weighted_round_robin": {}
+        }
+    ]
+}
+`
+	cc, err := grpc.Dial("etcd:///service/user",
+		grpc.WithResolvers(bd),
+		// 在这里使用的负载均衡器
+		grpc.WithDefaultServiceConfig(svcCfg),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(s.T(), err)
+	client := NewUserServiceClient(cc)
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		resp, err := client.GetById(ctx, &GetByIdReq{
+			Id: 123,
+		})
+		cancel()
+		require.NoError(s.T(), err)
+		s.T().Log(resp.User)
+	}
+}
+
+func (s *EtcdTestSuite) TestRoundRobinClient() {
+	bd, err := resolver.NewBuilder(s.client)
+	require.NoError(s.T(), err)
+	svcCfg := `
+{
+    "loadBalancingConfig": [
+        {
+            "round_robin": {}
+        }
+    ]
+}
+`
+	cc, err := grpc.Dial("etcd:///service/user",
+		grpc.WithResolvers(bd),
+		// 在这里使用的负载均衡器
+		grpc.WithDefaultServiceConfig(svcCfg),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(s.T(), err)
+	client := NewUserServiceClient(cc)
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		resp, err := client.GetById(ctx, &GetByIdReq{
+			Id: 123,
+		})
+		cancel()
+		require.NoError(s.T(), err)
+		s.T().Log(resp.User)
+	}
+}
+
+func (s *EtcdTestSuite) TestClient() {
+	bd, err := resolver.NewBuilder(s.client)
+	require.NoError(s.T(), err)
+	// URL 的规范 scheme:///xxxxx
+	cc, err := grpc.Dial("etcd:///service/user",
+		grpc.WithResolvers(bd),
+		//grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		//	ctx = context.WithValue(ctx, "req", req)
+		//	return invoker(ctx, method, req, reply, cc)
+		//}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(s.T(), err)
+	client := NewUserServiceClient(cc)
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		//ctx = context.WithValue(ctx, "balancer-key", 123)
+		resp, err := client.GetById(ctx, &GetByIdReq{
+			Id: 123,
+		})
+		cancel()
+		require.NoError(s.T(), err)
+		s.T().Log(resp.User)
+	}
+	//time.Sleep(time.Minute)
+}
+
+func (s *EtcdTestSuite) TestServer() {
+	go func() {
+		s.startServer(":8090", 20)
+	}()
+
+	go func() {
+		s.startServer(":8092", 30)
+	}()
+	s.startServer(":8091", 10)
+}
+
+func (s *EtcdTestSuite) startServer(addr string, weight int) {
+	l, err := net.Listen("tcp", addr)
+	require.NoError(s.T(), err)
+
+	// endpoint 以服务为维度。一个服务一个 Manager
+	em, err := endpoints.NewManager(s.client, "service/user")
+	require.NoError(s.T(), err)
+	addr = netx.GetOutboundIP() + addr
+	// key 是指这个实例的 key
+	// 如果有 instance id，用 instance id，如果没有，本机 IP + 端口
+	// 端口一般是从配置文件里面读
 	key := "service/user/" + addr
-	// 5s
-	var ttl int64 = 5
-	leaseResp, err := s.cli.Grant(ctx, ttl)
-	// metadata 一般用在客户端
-	err = em.AddEndpoint(ctx, key,
-		endpoints.Endpoint{Addr: addr}, clientv3.WithLease(leaseResp.ID))
-	assert.NoError(t, err)
+	//... 在这一步之前完成所有的启动的准备工作，包括缓存预加载之类的事情
+
+	// 这个 ctx 是控制创建租约的超时
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// ttl 是租期
+	// 秒作为单位
+	// 过了 1/3（还剩下 2/3 的时候）就续约
+	var ttl int64 = 30
+	leaseResp, err := s.client.Grant(ctx, ttl)
+	require.NoError(s.T(), err)
+	cancel()
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err = em.AddEndpoint(ctx, key, endpoints.Endpoint{
+		Addr: addr,
+		Metadata: map[string]any{
+			"weight": weight,
+			//"cpu":    90,
+		},
+	}, etcdv3.WithLease(leaseResp.ID))
+	require.NoError(s.T(), err)
 
 	kaCtx, kaCancel := context.WithCancel(context.Background())
 	go func() {
-		ch, err1 := s.cli.KeepAlive(kaCtx, leaseResp.ID)
-		require.NoError(t, err1)
-		for resp := range ch {
-			t.Log(resp.String())
-		}
-	}()
-	require.NoError(t, err)
-	ticker := time.NewTicker(time.Second)
-	go func() {
-		// 模拟注册的元数据变化
-		for now := range ticker.C {
-			ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
-			err1 := em.Update(ctx1, []*endpoints.UpdateWithOpts{
-				endpoints.NewAddUpdateOpts(key, endpoints.Endpoint{
-					Addr:     addr,
-					Metadata: now,
-				}, clientv3.WithLease(leaseResp.ID)),
-			})
-			cancel1()
-			require.NoError(t, err1)
-		}
+		// 在这里操作续约
+		_, err1 := s.client.KeepAlive(kaCtx, leaseResp.ID)
+		require.NoError(s.T(), err1)
+		//for kaResp := range ch {
+		//	// 正常就是打印一下 DEBUG 日志啥的
+		//	s.T().Log(kaResp.String(), time.Now().String())
+		//}
 	}()
 
 	server := grpc.NewServer()
-	l, err := net.Listen("tcp", ":8090")
-	assert.NoError(t, err)
-
-	us := &Server{}
-	RegisterUserServiceServer(server, us)
-	err = server.Serve(l)
-	t.Log(err)
-
-	kaCancel()
-	err = em.DeleteEndpoint(ctx, key)
-	assert.NoError(t, err)
-	server.GracefulStop()
-}
-
-// TestEtcdClient 测试 ETCD 作为服务注册与发现中心
-// 这是客户端的发现过程
-func (s *EtcdTestSuite) TestEtcdClient() {
-	t := s.T()
-	etcdResolver, err := resolver.NewBuilder(s.cli)
-	assert.NoError(t, err)
-	cc, err := grpc.Dial("etcd:///service/user",
-		grpc.WithResolvers(etcdResolver),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	assert.NoError(t, err)
-	userClient := NewUserServiceClient(cc)
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	//defer cancel()
-	ctx := context.Background()
-	resp, err := userClient.GetById(ctx, &GetByIdReq{
-		Id: 123,
+	RegisterUserServiceServer(server, &Server{
+		// 用地址来标识
+		Name: addr,
 	})
-	require.NoError(t, err)
-	t.Log(resp.User)
+	err = server.Serve(l)
+	s.T().Log(err)
+	// 你要退出了，正常退出
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	// 我要先取消续约
+	kaCancel()
+	// 退出阶段，先从注册中心里面删了自己
+	err = em.DeleteEndpoint(ctx, key)
+	// 关掉客户端
+	s.client.Close()
+	server.GracefulStop()
 }
 
 func TestEtcd(t *testing.T) {

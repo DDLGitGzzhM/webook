@@ -50,6 +50,15 @@ func main() {
 	defer cancel()
 	closeFunc(ctx)
 
+	//httpServer := http.Server{
+	//	Addr:    ":8080",
+	//	Handler: app.Web().Handler(),
+	//}
+	//httpServer.ListenAndServe()
+	//httpServer.Shutdown(context.Background())
+
+	// gin 是对这个的二次封装
+	// http.Server{}.Shutdown()
 	ctx = app.Cron().Stop()
 	// 想办法 close ？？
 	// 这边可以考虑超时强制退出，防止有些任务，执行特别长的时间

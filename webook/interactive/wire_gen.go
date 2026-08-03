@@ -8,7 +8,6 @@ package main
 
 import (
 	"github.com/google/wire"
-
 	"webook/webook/interactive/grpc"
 	"webook/webook/interactive/ioc"
 	"webook/webook/internal/events/article"
@@ -32,7 +31,7 @@ func InitAPP() *App {
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
-	server := ioc.InitGRPCxServer(interactiveServiceServer)
+	server := ioc.InitGRPCxServer(logger, interactiveServiceServer)
 	client := ioc.InitKafka()
 	interactiveReadEventBatchConsumer := article.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
 	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, client)

@@ -9,7 +9,7 @@ import (
 
 type Server struct {
 	UnimplementedUserServiceServer
-	name string
+	Name string
 }
 
 func (s *Server) GetById(
@@ -20,11 +20,11 @@ func (s *Server) GetById(
 		rest := ddl.Sub(time.Now())
 		fmt.Println(rest.String())
 	}
-	log.Println("命中服务器", s.name)
+	log.Println("命中服务器", s.Name)
 	return &GetByIdResp{
 		User: &User{
 			Id:   req.Id,
-			Name: s.name,
+			Name: "abcd, from " + s.Name,
 		},
 	}, nil
 }
