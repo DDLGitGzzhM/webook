@@ -90,6 +90,81 @@ func (v *Validator[T]) Validate(ctx context.Context) error {
 	return eg.Wait()
 }
 
+// validateBaseToTargetV1 批量写法，第十三周答案
+func (v *Validator[T]) validateBaseToTargetV1(ctx context.Context) error {
+	offset := 0
+	// 假设说一次 100 条，复用已有的 batchSize
+	for {
+		var srcs []T
+		// 直接取出来一批
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		err := v.base.WithContext(dbCtx).
+			Order("id").
+			Where("utime >= ?", v.utime).
+			Offset(offset).Limit(v.batchSize).Find(&srcs).Error
+		cancel()
+		switch err {
+		// 在 find 里面其实不会有这个错误
+		//case gorm.ErrRecordNotFound:
+		case context.Canceled, context.DeadlineExceeded:
+			// 超时你可以继续，也可以返回。一般超时都是因为数据库有了问题
+			return err
+		case nil:
+			if len(srcs) == 0 {
+				// 结束，没有数据
+				return nil
+			}
+			err = v.dstDiffV1(ctx, srcs)
+			if err != nil {
+				// 直接中断，你也可以考虑继续重试
+				return err
+			}
+		default:
+			v.l.Error("校验数据，查询 base 出错", logger.Error(err.Error()))
+		}
+		if len(srcs) < v.batchSize {
+			// 没有数据了
+			return nil
+		}
+		offset += len(srcs)
+	}
+}
+
+func (v *Validator[T]) dstDiffV1(ctx context.Context, srcs []T) error {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	ids := slice.Map(srcs, func(idx int, src T) int64 {
+		return src.ID()
+	})
+	var dsts []T
+	err := v.target.WithContext(dbCtx).Where("id IN ?", ids).
+		Find(&dsts).Error
+	// 让调用者来决定
+	if err != nil {
+		return err
+	}
+	dstMap := v.toMap(dsts)
+	for _, src := range srcs {
+		dst, ok := dstMap[src.ID()]
+		if !ok {
+			v.notify(ctx, src.ID(), events.InconsistentEventTypeTargetMissing)
+			continue
+		}
+		if !src.CompareTo(dst) {
+			v.notify(ctx, src.ID(), events.InconsistentEventTypeNEQ)
+		}
+	}
+	return nil
+}
+
+func (v *Validator[T]) toMap(data []T) map[int64]T {
+	res := make(map[int64]T, len(data))
+	for _, val := range data {
+		res[val.ID()] = val
+	}
+	return res
+}
+
 // Validate 调用者可以通过 ctx 来控制校验程序退出
 // 全量校验，是不是一条条比对？
 // 所以要从数据库里面一条条查询出来
