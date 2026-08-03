@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"webook/webook/internal/domain"
@@ -65,6 +66,13 @@ func (r *CacheUserRepository) FindById(ctx context.Context, id int64) (domain.Us
 	if err == nil {
 		return u, nil
 	}
+
+	// 尝试去数据库查询
+	if ctx.Value("limited") == "true" {
+		// 不去了
+		return domain.User{}, errors.New("触发限流，缓存未命中，不查询数据库")
+	}
+
 	ue, err := r.dao.FindById(ctx, id)
 	if err != nil {
 		return domain.User{}, err

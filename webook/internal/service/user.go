@@ -57,12 +57,18 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 }
 
 func (svc *UserService) FindOrCreateByWechat(ctx context.Context, weChatInfo domain.WeChatInfo) (domain.User, error) {
+	// 像这种
 	u, err := svc.repo.FindByWechat(ctx, weChatInfo.OpenId)
 	if !errors.Is(err, repository.ErrUserNotFound) {
 		return u, err
 	}
 	u = domain.User{
 		WeChatInfo: weChatInfo,
+	}
+	// 所谓的慢路径
+	// 你是不是可以说，在降级、限流、熔断的时候，就禁止注册
+	if ctx.Value("limited") == "true" {
+		return domain.User{}, errors.New("触发限流，禁用注册")
 	}
 	err = svc.repo.Create(ctx, &u)
 	if err != nil {

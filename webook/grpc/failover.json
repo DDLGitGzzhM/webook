@@ -1,0 +1,22 @@
+{
+  "loadBalancingConfig": [
+    {
+      "round_robin": {}
+    }
+  ],
+  "methodConfig": [
+    {
+      "name": [{"service":  "UserService"}],
+      "retryPolicy": {
+        "maxAttempts": 4,
+        "initialBackoff": "0.01s",
+        "maxBackoff": "0.1s",
+        "backoffMultiplier": 2.0,
+        "retryableStatusCodes": [
+          "UNAVAILABLE",
+          "UNKNOWN",
+          "DEADLINE_EXCEEDED"]
+      }
+    }
+  ]
+}

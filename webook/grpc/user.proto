@@ -41,6 +41,15 @@ message Address {
 
 service UserService {
   rpc GetById(GetByIdReq) returns (GetByIdResp);
+  rpc UpdateById(UpdateByIdReq) returns (UpdateByIdResp);
+}
+
+message UpdateByIdReq {
+  int64 id = 1;
+}
+
+message UpdateByIdResp {
+  User user = 1;
 }
 
 message GetByIdReq {

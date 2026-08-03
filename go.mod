@@ -6,7 +6,7 @@ require (
 	github.com/IBM/sarama v1.60.0
 	github.com/aws/aws-sdk-go v1.45.27
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/ecodeclub/ekit v0.0.8-0.20231107102407-45c43657fd3c
+	github.com/ecodeclub/ekit v0.0.8-0.20240101145605-5a235048be44
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
@@ -74,6 +74,7 @@ require (
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
+	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
