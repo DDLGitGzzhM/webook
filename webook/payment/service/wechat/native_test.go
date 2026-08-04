@@ -14,6 +14,7 @@ import (
 
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/payment/domain"
+	"webook/webook/payment/events"
 )
 
 // 下单
@@ -37,7 +38,8 @@ func TestNativeService_Prepay(t *testing.T) {
 	nativeSvc := &native.NativeApiService{
 		Client: client,
 	}
-	svc := NewNativePaymentService(nativeSvc, nil, logger.NewNoOpLogger(), appid, mchID)
+	svc := NewNativePaymentService(nativeSvc, nil, events.NopProducer{},
+		logger.NewNoOpLogger(), appid, mchID)
 	codeUrl, err := svc.Prepay(ctx, domain.Payment{
 		Amt: domain.Amount{
 			Currency: "CNY",

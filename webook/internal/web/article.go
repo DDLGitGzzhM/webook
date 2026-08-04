@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	intrv1 "webook/webook/api/proto/gen/intr/v1"
+	rewardv1 "webook/webook/api/proto/gen/reward/v1"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/logger"
@@ -19,22 +20,25 @@ import (
 )
 
 type ArticleHandler struct {
-	svc     service.IArticleService
-	l       logger.Logger
-	intrSvc intrv1.InteractiveServiceClient
-	biz     string
+	svc       service.IArticleService
+	l         logger.Logger
+	intrSvc   intrv1.InteractiveServiceClient
+	rewardSvc rewardv1.RewardServiceClient
+	biz       string
 }
 
 func NewArticleHandler(
 	svc service.IArticleService,
 	intrSvc intrv1.InteractiveServiceClient,
+	rewardSvc rewardv1.RewardServiceClient,
 	l logger.Logger,
 ) *ArticleHandler {
 	return &ArticleHandler{
-		svc:     svc,
-		intrSvc: intrSvc,
-		l:       l,
-		biz:     "article",
+		svc:       svc,
+		intrSvc:   intrSvc,
+		rewardSvc: rewardSvc,
+		l:         l,
+		biz:       "article",
 	}
 }
 
@@ -72,6 +76,9 @@ func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 		*jwtHandler.UserClaims](u.Like))
 	//pub.POST("/cancel_like", ginx.WrapBodyAndToken[LikeReq,
 	//	*jwtHandler.UserClaims](u.Like))
+	// 在这里定义 打赏接口
+	pub.POST("/reward", ginx.WrapBodyAndToken[RewardReq,
+		*jwtHandler.UserClaims](u.Reward))
 }
 
 func (u *ArticleHandler) Like(
@@ -319,5 +326,34 @@ func (u *ArticleHandler) List(
 				Utime:    src.Utime.Format(time.DateTime),
 			}
 		}),
+	}, nil
+}
+
+func (u *ArticleHandler) Reward(
+	ctx *gin.Context, req RewardReq, uc *jwtHandler.UserClaims,
+) (ginx.Result, error) {
+	art, err := u.svc.GetPublishedById(ctx, req.Id, uc.UserId)
+	if err != nil {
+		return ginx.Result{}, err
+	}
+	resp, err := u.rewardSvc.PreReward(ctx, &rewardv1.PreRewardRequest{
+		Biz:       "article",
+		BizId:     req.Id,
+		Uid:       uc.UserId,
+		Amt:       req.Amount,
+		TargetUid: art.Author.Id,
+		BizName:   art.Title,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{
+		Data: map[string]any{
+			"codeURL": resp.CodeUrl,
+			"rid":     resp.Rid,
+		},
 	}, nil
 }

@@ -13,4 +13,5 @@ type PaymentRepository interface {
 	// UpdatePayment 这个设计有点差，因为
 	UpdatePayment(ctx context.Context, pmt domain.Payment) error
 	FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error)
+	GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error)
 }

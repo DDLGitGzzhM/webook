@@ -1,2 +1,15 @@
 http:
-  addr: ":8080"
+  addr: ":8070"
+
+db:
+  dsn: "root:root@tcp(localhost:13316)/webook_payment"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+grpc:
+  server:
+    port: 8098
+    etcdAddrs:
+      - "localhost:12379"

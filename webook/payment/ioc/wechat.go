@@ -13,6 +13,7 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 
 	"webook/webook/internal/pkg/logger"
+	"webook/webook/payment/events"
 	"webook/webook/payment/repository"
 	"webook/webook/payment/service/wechat"
 )
@@ -45,11 +46,12 @@ func InitWechatNativeService(
 	cli *core.Client,
 	repo repository.PaymentRepository,
 	l logger.Logger,
+	producer events.Producer,
 	cfg WechatConfig,
 ) *wechat.NativePaymentService {
 	return wechat.NewNativePaymentService(&native.NativeApiService{
 		Client: cli,
-	}, repo, l, cfg.AppID, cfg.MchID)
+	}, repo, producer, l, cfg.AppID, cfg.MchID)
 }
 
 func InitWechatNotifyHandler(cfg WechatConfig) *notify.Handler {
@@ -72,11 +74,6 @@ func InitWechatConfig() WechatConfig {
 		CertPath:     "./config/cert/apiclient_cert.pem",
 		KeyPath:      "./config/cert/apiclient_key.pem",
 	}
-}
-
-// InitNilNativePaymentService 对应参考 commit 中尚未接入 NativeService 的过渡态。
-func InitNilNativePaymentService() *wechat.NativePaymentService {
-	return nil
 }
 
 type WechatConfig struct {

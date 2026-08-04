@@ -9,4 +9,8 @@ mock:
 grpc:
 	@protoc --go_out=webook/api/proto/gen --go_opt=paths=source_relative \
 		--go-grpc_out=webook/api/proto/gen --go-grpc_opt=paths=source_relative \
-		-I webook/api/proto webook/api/proto/intr/v1/intr.proto
+		-I webook/api/proto \
+		webook/api/proto/intr/v1/intr.proto \
+		webook/api/proto/account/v1/account.proto \
+		webook/api/proto/payment/v1/payment.proto \
+		webook/api/proto/reward/v1/reward.proto

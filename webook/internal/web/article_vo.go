@@ -2,6 +2,11 @@ package web
 
 import "webook/webook/internal/domain"
 
+type RewardReq struct {
+	Id     int64 `json:"id"`
+	Amount int64 `json:"amount"`
+}
+
 // VO view object，对标前端
 
 type LikeReq struct {

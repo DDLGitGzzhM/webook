@@ -22,3 +22,6 @@ grpc:
       addr: "localhost:8090"
       secure: false
       threshold: 100
+    reward:
+      name: "reward"
+      secure: false

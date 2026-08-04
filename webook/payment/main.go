@@ -8,6 +8,10 @@ import (
 func main() {
 	initViperV2Watch()
 	app := InitApp()
+	go func() {
+		err := app.GRPCServer.Serve()
+		panic(err)
+	}()
 	err := app.WebServer.Start()
 	panic(err)
 }

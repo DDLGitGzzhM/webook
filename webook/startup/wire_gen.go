@@ -55,8 +55,10 @@ func InitWebServer() *App {
 	iArticleService := service.NewArticleService(cachedArticleRepository, loggerZapLogger, producer)
 	clientv3Client := ioc.InitEtcd()
 	interactiveServiceClient := ioc.InitIntrGRPCClientV1(clientv3Client)
-	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, loggerZapLogger)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
+	rewardServiceClient := ioc.InitRewardGRPCClient(clientv3Client)
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, rewardServiceClient, loggerZapLogger)
+	rewardHandler := web.NewRewardHandler(rewardServiceClient)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, rewardHandler)
 	v2 := ioc.NewConsumers()
 	rankingRedisCache := cache.NewRankingRedisCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
@@ -96,7 +98,8 @@ func InitArticleHandler(artDAO article.ArticleDao) *web.ArticleHandler {
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, loggerZapLogger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, loggerZapLogger)
 	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
-	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, loggerZapLogger)
+	rewardServiceClient := ioc.InitNilRewardGRPCClient()
+	articleHandler := web.NewArticleHandler(iArticleService, interactiveServiceClient, rewardServiceClient, loggerZapLogger)
 	return articleHandler
 }
 

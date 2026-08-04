@@ -13,6 +13,12 @@ type PaymentGORMDAO struct {
 	db *gorm.DB
 }
 
+func (p *PaymentGORMDAO) GetPayment(ctx context.Context, bizTradeNO string) (Payment, error) {
+	var res Payment
+	err := p.db.WithContext(ctx).Where("biz_trade_no = ?", bizTradeNO).First(&res).Error
+	return res, err
+}
+
 func (p *PaymentGORMDAO) FindExpiredPayment(
 	ctx context.Context,
 	offset int, limit int, t time.Time,
@@ -30,7 +36,7 @@ func (p *PaymentGORMDAO) UpdateTxnIDAndStatus(
 	bizTradeNo string,
 	txnID string, status domain.PaymentStatus,
 ) error {
-	return p.db.WithContext(ctx).
+	return p.db.WithContext(ctx).Model(&Payment{}).
 		Where("biz_trade_no = ?", bizTradeNo).
 		Updates(map[string]any{
 			"txn_id": txnID,

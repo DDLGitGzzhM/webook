@@ -71,6 +71,21 @@ func (mr *MockPaymentRepositoryMockRecorder) FindExpiredPayment(ctx, offset, lim
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindExpiredPayment", reflect.TypeOf((*MockPaymentRepository)(nil).FindExpiredPayment), ctx, offset, limit, t)
 }
 
+// GetPayment mocks base method.
+func (m *MockPaymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPayment", ctx, bizTradeNO)
+	ret0, _ := ret[0].(domain.Payment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPayment indicates an expected call of GetPayment.
+func (mr *MockPaymentRepositoryMockRecorder) GetPayment(ctx, bizTradeNO any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPayment", reflect.TypeOf((*MockPaymentRepository)(nil).GetPayment), ctx, bizTradeNO)
+}
+
 // UpdatePayment mocks base method.
 func (m *MockPaymentRepository) UpdatePayment(ctx context.Context, pmt domain.Payment) error {
 	m.ctrl.T.Helper()

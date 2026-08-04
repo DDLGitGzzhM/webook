@@ -1,0 +1,24 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/webook_reward"
+
+redis:
+  addr: "localhost:6379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+grpc:
+  server:
+    port: 8099
+    etcdAddrs:
+      - "localhost:12379"
+  client:
+    payment:
+      target: "etcd:///service/payment"
+    account:
+      target: "etcd:///service/account"
+
+etcd:
+  endpoints:
+    - "localhost:12379"

@@ -86,6 +86,7 @@ func InitWebServer() *App {
 		// 放一起，启用了 etcd 作为服务发现
 		ioc.InitEtcd,
 		ioc.InitIntrGRPCClientV1,
+		ioc.InitRewardGRPCClient,
 		rankingServiceSet,
 		jobProviderSet,
 		ioc.InitJobs,
@@ -100,6 +101,7 @@ func InitWebServer() *App {
 		wire.Bind(new(jwtHandler.Handler), new(*jwtHandler.RedisJwt)),
 		web.NewUserHandler,
 		web.NewArticleHandler,
+		web.NewRewardHandler,
 		web.NewOAuth2WechatHandler,
 		ioc.InitWeChatService,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
@@ -137,6 +139,7 @@ func InitArticleHandler(artDAO articledao.ArticleDao) *web.ArticleHandler {
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),
 		interactiveSvcProvider,
 		ioc.InitIntrGRPCClient,
+		ioc.InitNilRewardGRPCClient,
 		article.NewNoOpProducer,
 		service.NewArticleService,
 		web.NewArticleHandler,

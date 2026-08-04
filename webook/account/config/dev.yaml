@@ -1,0 +1,8 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/webook_account"
+
+grpc:
+  server:
+    port: 8100
+    etcdAddrs:
+      - "localhost:12379"

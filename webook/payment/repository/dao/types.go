@@ -14,6 +14,7 @@ type PaymentDAO interface {
 		ctx context.Context, bizTradeNo string, txnID string, status domain.PaymentStatus,
 	) error
 	FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]Payment, error)
+	GetPayment(ctx context.Context, bizTradeNO string) (Payment, error)
 }
 
 type Payment struct {
@@ -45,8 +46,9 @@ type Payment struct {
 	TxnID sql.NullString `gorm:"column:txn_id;type:varchar(128);unique"`
 
 	Status uint8
-	Utime  int64
-	Ctime  int64
+	// Utime 上面要创建一个索引
+	Utime int64 `gorm:"index"`
+	Ctime int64
 }
 
 // WechatPaymentExt 微信支付独有的

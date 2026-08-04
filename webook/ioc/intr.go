@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	intrv1 "webook/webook/api/proto/gen/intr/v1"
+	rewardv1 "webook/webook/api/proto/gen/reward/v1"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web/client"
 )
@@ -56,6 +57,37 @@ func InitIntrGRPCClientV1(client *clientv3.Client) intrv1.InteractiveServiceClie
 		panic(err)
 	}
 	return intrv1.NewInteractiveServiceClient(cc)
+}
+
+// InitRewardGRPCClient 打赏服务 gRPC 客户端
+func InitRewardGRPCClient(client *clientv3.Client) rewardv1.RewardServiceClient {
+	type Config struct {
+		Secure bool
+		Name   string
+	}
+	var cfg Config
+	err := viper.UnmarshalKey("grpc.client.reward", &cfg)
+	if err != nil {
+		panic(err)
+	}
+	bd, err := resolver.NewBuilder(client)
+	if err != nil {
+		panic(err)
+	}
+	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
+	if !cfg.Secure {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	cc, err := grpc.Dial("etcd:///service/"+cfg.Name, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return rewardv1.NewRewardServiceClient(cc)
+}
+
+// InitNilRewardGRPCClient 测试用空客户端
+func InitNilRewardGRPCClient() rewardv1.RewardServiceClient {
+	return nil
 }
 
 // InitIntrGRPCClient 这个是我们流量控制的客户端

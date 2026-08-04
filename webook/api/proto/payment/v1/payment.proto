@@ -1,0 +1,50 @@
+syntax="proto3";
+
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package pmt.v1;
+option go_package="webook/webook/api/proto/gen/payment/v1;pmtv1";
+
+service WechatPaymentService {
+  // buf:lint:ignore RPC_REQUEST_STANDARD_NAME
+  rpc NativePrePay(PrePayRequest) returns (NativePrePayResponse);
+  rpc GetPayment(GetPaymentRequest) returns(GetPaymentResponse);
+//  rpc Prepay(PrePayRequest) returns (PrepayResponse);
+}
+
+message GetPaymentRequest {
+  string biz_trade_no = 1;
+}
+
+message GetPaymentResponse {
+//  有需要再加字段
+  PaymentStatus status = 2;
+}
+
+message PrePayRequest {
+
+  // 带一个 type，标记是扫码支付，还是 js 跳转支付，还是唤醒本地 APP
+  // type = "native"
+
+  Amount amt = 1;
+  string biz_trade_no = 2;
+  string description = 3;
+}
+
+message Amount {
+  int64 total = 1;
+  string currency = 2;
+}
+
+enum PaymentStatus {
+    PaymentStatusUnknown = 0;
+    PaymentStatusInit = 1;
+    PaymentStatusSuccess = 2;
+    PaymentStatusFailed = 3;
+    PaymentStatusRefund = 4;
+}
+
+// NativePrePayResponse 的 response 因为支付方式不同，
+// 所以响应的含义也会有不同。
+message NativePrePayResponse {
+  string code_url = 1;
+}

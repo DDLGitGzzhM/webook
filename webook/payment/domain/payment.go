@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/wechatpay-apiv3/wechatpay-go/services/payments"
+
 type Amount struct {
 	// 如果要支持国际化，那么这个是不能少的
 	Currency string
@@ -21,10 +23,6 @@ type Payment struct {
 	TxnID string
 }
 
-type WePayment struct {
-	Payment
-}
-
 type PaymentStatus uint8
 
 func (s PaymentStatus) AsUint8() uint8 {
@@ -37,4 +35,12 @@ const (
 	PaymentStatusSuccess
 	PaymentStatusFailed
 	PaymentStatusRefund
+
+	//PaymentStatusRefundFail
+	//PaymentStatusRefundSuccess
+	// PaymentStatusRecoup
+	// PaymentStatusRecoupFailed
+	// PaymentStatusRecoupSuccess
 )
+
+type Txn = payments.Transaction
