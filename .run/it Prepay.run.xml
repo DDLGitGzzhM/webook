@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="it Prepay" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="webook" />
+    <working_directory value="$PROJECT_DIR$/webook/payment" />
+    <parameters value=" -testify.m ^TestPrepay$" />
+    <root_directory value="$PROJECT_DIR$" />
+    <kind value="PACKAGE" />
+    <package value="webook/webook/payment/integration" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <pattern value="^\QTestWechatNativeService\E$/^\QTestPrepay\E$" />
+    <method v="2" />
+  </configuration>
+</component>
