@@ -43,11 +43,13 @@ type AccountActivity struct {
 	Uid int64 `gorm:"index:account_uid"`
 	// 这边有些设计会只用一个单独的 txn_id 来标记
 	// 加上这些 业务 ID，DEBUG 的时候贼好用
-	Biz   string
-	BizId int64
+	// 在 biz, biz_id, account 和 account_id 上创建一个联合唯一索引
+	// 这样可以确保记账的时候不会重复记账
+	Biz   string `gorm:"uniqueIndex:biz_type_id"`
+	BizId int64  `gorm:"uniqueIndex:biz_type_id"`
 	// account 账号
-	Account     int64 `gorm:"index:account_uid"`
-	AccountType uint8 `gorm:"index:account_uid"`
+	Account     int64 `gorm:"index:account_uid;uniqueIndex:biz_type_id"`
+	AccountType uint8 `gorm:"index:account_uid;uniqueIndex:biz_type_id"`
 	// 调整的金额，有些设计不想引入负数，就会增加一个类型
 	// 标记是增加还是减少，暂时我们还不需要
 	Amount   int64

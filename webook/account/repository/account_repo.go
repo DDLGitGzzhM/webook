@@ -3,16 +3,29 @@ package repository
 import (
 	"context"
 	"time"
+
 	"webook/webook/account/domain"
+	"webook/webook/account/repository/cache"
 	"webook/webook/account/repository/dao"
 )
 
 type accountRepository struct {
-	dao dao.AccountDAO
+	dao   dao.AccountDAO
+	cache cache.Cache
 }
 
-func NewAccountRepository(dao dao.AccountDAO) AccountRepository {
-	return &accountRepository{dao: dao}
+// NewAccountRepository 创建账户仓储
+func NewAccountRepository(dao dao.AccountDAO, cache cache.Cache) AccountRepository {
+	return &accountRepository{dao: dao, cache: cache}
+}
+
+// CheckUnique 如果返回了 error 就说明重复记账了
+func (a *accountRepository) CheckUnique(ctx context.Context, c domain.Credit) error {
+	return a.cache.GetUnique(ctx, c)
+}
+
+func (a *accountRepository) SetUnique(ctx context.Context, c domain.Credit) error {
+	return a.cache.SetUnique(ctx, c)
 }
 
 func (a *accountRepository) AddCredit(ctx context.Context, c domain.Credit) error {

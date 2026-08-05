@@ -10,6 +10,7 @@ import (
 	"webook/webook/account/grpc"
 	"webook/webook/account/ioc"
 	"webook/webook/account/repository"
+	"webook/webook/account/repository/cache"
 	"webook/webook/account/repository/dao"
 	"webook/webook/account/service"
 )
@@ -19,7 +20,9 @@ import (
 func Init() *App {
 	db := ioc.InitDB()
 	accountDAO := dao.NewCreditGORMDAO(db)
-	accountRepository := repository.NewAccountRepository(accountDAO)
+	cmdable := ioc.InitRedis()
+	cacheCache := cache.NewRedisCache(cmdable)
+	accountRepository := repository.NewAccountRepository(accountDAO, cacheCache)
 	accountService := service.NewAccountService(accountRepository)
 	accountServiceServer := grpc.NewAccountServiceServer(accountService)
 	logger := ioc.InitLogger()

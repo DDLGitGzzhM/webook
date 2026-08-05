@@ -9,6 +9,7 @@ package startup
 import (
 	"webook/webook/account/grpc"
 	"webook/webook/account/repository"
+	"webook/webook/account/repository/cache"
 	"webook/webook/account/repository/dao"
 	"webook/webook/account/service"
 )
@@ -18,7 +19,9 @@ import (
 func InitAccountService() *grpc.AccountServiceServer {
 	gormDB := InitTestDB()
 	accountDAO := dao.NewCreditGORMDAO(gormDB)
-	accountRepository := repository.NewAccountRepository(accountDAO)
+	cmdable := InitRedis()
+	cacheCache := cache.NewRedisCache(cmdable)
+	accountRepository := repository.NewAccountRepository(accountDAO, cacheCache)
 	accountService := service.NewAccountService(accountRepository)
 	accountServiceServer := grpc.NewAccountServiceServer(accountService)
 	return accountServiceServer

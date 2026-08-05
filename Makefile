@@ -15,4 +15,5 @@ grpc:
 		webook/api/proto/account/v1/account.proto \
 		webook/api/proto/payment/v1/payment.proto \
 		webook/api/proto/reward/v1/reward.proto \
-		webook/api/proto/comment/v1/comment.proto
+		webook/api/proto/comment/v1/comment.proto \
+		webook/api/proto/follow/v1/follow.proto
