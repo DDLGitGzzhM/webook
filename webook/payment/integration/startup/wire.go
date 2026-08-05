@@ -22,6 +22,8 @@ var wechatNativeSvcSet = wire.NewSet(
 	ioc.InitWechatClient,
 	dao.NewPaymentGORMDAO,
 	repository.NewPaymentRepository,
+	repository.NewPaymentGORMRepository,
+	repository.NewLocalMsgGORMRepository,
 	InitNopProducer,
 	ioc.InitWechatNativeService,
 	ioc.InitWechatConfig)

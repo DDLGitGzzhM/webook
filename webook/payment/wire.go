@@ -20,6 +20,8 @@ func InitApp() *App {
 		dao.NewPaymentGORMDAO,
 		ioc.InitDB,
 		repository.NewPaymentRepository,
+		repository.NewPaymentGORMRepository,
+		repository.NewLocalMsgGORMRepository,
 		grpc.NewWechatServiceServer,
 		ioc.InitWechatNativeService,
 		ioc.InitWechatConfig,

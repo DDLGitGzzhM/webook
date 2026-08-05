@@ -2,6 +2,7 @@ package wechat
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -26,6 +27,11 @@ type NativePaymentService struct {
 	repo      repository.PaymentRepository
 	producer  events.Producer
 	l         logger.Logger
+
+	// 作业使用的 repo
+	// 注意初始化的时候要传入正确的 repo
+	repov1  *repository.PaymentGORMRepository
+	msgRepo repository.LocalMsgRepository
 
 	// 在微信 native 里面，分别是
 	// SUCCESS：支付成功
@@ -68,6 +74,16 @@ func NewNativePaymentService(
 			// 其它状态你都可以加
 		},
 	}
+}
+
+// WithLocalMsg 注入本地消息表相关依赖（第十七周作业）
+func (n *NativePaymentService) WithLocalMsg(
+	repov1 *repository.PaymentGORMRepository,
+	msgRepo repository.LocalMsgRepository,
+) *NativePaymentService {
+	n.repov1 = repov1
+	n.msgRepo = msgRepo
+	return n
 }
 
 // Prepay 为了拿到扫码支付的二维码
@@ -163,5 +179,67 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 			logger.String("biz_trade_no", *txn.OutTradeNo),
 			logger.Error(err1.Error()))
 	}
+	return nil
+}
+
+// updateByTxnV1 第十七周作业
+// 使用本地消息表的关键就是要把更新支付状态和插入待发送消息在一个数据库事务内完成操作
+// 这一步我们下沉到了 repository，来规避在 service 上操作本地数据库事务
+func (n *NativePaymentService) updateByTxnV1(ctx context.Context, txn *payments.Transaction) error {
+	status, ok := n.nativeCBTypeToStatus[*txn.TradeState]
+	if !ok {
+		return fmt.Errorf("%w, 微信的状态是 %s", errUnknownTransactionState, *txn.TradeState)
+	}
+	// 很显然，就是更新一下我们本地数据库里面 payment 的状态
+	evt := events.PaymentEvent{
+		BizTradeNO: *txn.OutTradeNo,
+		Status:     status.AsUint8(),
+	}
+	var msgId int64
+	// 在这种情况下，你无可避免会和底层耦合在一起
+	err := n.repov1.Transaction(ctx, func(pmt *repository.PaymentGORMRepository, msg *repository.LocalMsgGORMRepository) error {
+		err1 := pmt.UpdatePayment(ctx, domain.Payment{
+			// 微信过来的 transaction id
+			TxnID:      *txn.TransactionId,
+			BizTradeNO: *txn.OutTradeNo,
+			Status:     status,
+		})
+		if err1 != nil {
+			return err1
+		}
+		evtData, err1 := json.Marshal(evt)
+		if err1 != nil {
+			return err1
+		}
+		msgId, err1 = msg.AddMsg(ctx, string(evtData))
+		return err1
+	})
+	if err != nil {
+		return err
+	}
+
+	// 就要通知业务方了
+	// 有些人的系统，会根据支付状态来决定要不要通知
+	// 我要是发消息失败了怎么办？
+	// 站在业务的角度，你是不是至少应该发成功一次
+	err1 := n.producer.ProducePaymentEvent(ctx, evt)
+	if err1 != nil {
+		// 失败的时候，我们并没有将本地消息表标记为失败，是因为我们后面还想继续重试
+		// msg 表里面有一条处于 StatusInit 的数据
+		n.l.Error("发送支付事件失败", logger.Error(err1.Error()),
+			logger.String("biz_trade_no", *txn.OutTradeNo))
+		return nil
+	}
+
+	// 更新本地消息表状态
+	// 这里我认为即便是本地消息表更新失败，也不是业务失败
+	err1 = n.msgRepo.MarkSuccess(ctx, msgId)
+	if err1 != nil {
+		// 没有把 msg 标记为发送成功
+		// 消息队列里面会有至少两条消息
+		n.l.Error("将本地消息表标记为成功操作失败", logger.Error(err1.Error()),
+			logger.String("biz_trade_no", *txn.OutTradeNo))
+	}
+
 	return nil
 }

@@ -45,13 +45,15 @@ func InitWechatClient(cfg WechatConfig) *core.Client {
 func InitWechatNativeService(
 	cli *core.Client,
 	repo repository.PaymentRepository,
+	repov1 *repository.PaymentGORMRepository,
+	msgRepo *repository.LocalMsgGORMRepository,
 	l logger.Logger,
 	producer events.Producer,
 	cfg WechatConfig,
 ) *wechat.NativePaymentService {
 	return wechat.NewNativePaymentService(&native.NativeApiService{
 		Client: cli,
-	}, repo, producer, l, cfg.AppID, cfg.MchID)
+	}, repo, producer, l, cfg.AppID, cfg.MchID).WithLocalMsg(repov1, msgRepo)
 }
 
 func InitWechatNotifyHandler(cfg WechatConfig) *notify.Handler {

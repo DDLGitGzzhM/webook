@@ -23,9 +23,11 @@ func InitWechatNativeService() *wechat.NativePaymentService {
 	gormDB := InitTestDB()
 	paymentDAO := dao.NewPaymentGORMDAO(gormDB)
 	paymentRepository := repository.NewPaymentRepository(paymentDAO)
+	paymentGORMRepository := repository.NewPaymentGORMRepository(gormDB)
+	localMsgGORMRepository := repository.NewLocalMsgGORMRepository(gormDB)
 	logger := ioc.InitLogger()
 	producer := InitNopProducer()
-	nativePaymentService := ioc.InitWechatNativeService(client, paymentRepository, logger, producer, wechatConfig)
+	nativePaymentService := ioc.InitWechatNativeService(client, paymentRepository, paymentGORMRepository, localMsgGORMRepository, logger, producer, wechatConfig)
 	return nativePaymentService
 }
 
@@ -37,4 +39,4 @@ func InitNopProducer() events.Producer {
 	return events.NopProducer{}
 }
 
-var wechatNativeSvcSet = wire.NewSet(ioc.InitWechatClient, dao.NewPaymentGORMDAO, repository.NewPaymentRepository, InitNopProducer, ioc.InitWechatNativeService, ioc.InitWechatConfig)
+var wechatNativeSvcSet = wire.NewSet(ioc.InitWechatClient, dao.NewPaymentGORMDAO, repository.NewPaymentRepository, repository.NewPaymentGORMRepository, repository.NewLocalMsgGORMRepository, InitNopProducer, ioc.InitWechatNativeService, ioc.InitWechatConfig)
