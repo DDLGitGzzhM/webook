@@ -74,10 +74,11 @@ func (AccountType) EnumDescriptor() ([]byte, []int) {
 
 type CreditRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 唯一标识业务的
+	// 具体入账的各种信息
+	// 有一些设计师不用这个业务方的凭证，而是用支付的凭证
 	Biz   string `protobuf:"bytes,1,opt,name=biz,proto3" json:"biz,omitempty"`
 	BizId int64  `protobuf:"varint,2,opt,name=biz_id,json=bizId,proto3" json:"biz_id,omitempty"`
-	// 不同的账号金额变动
+	// 这里你可以有更多的字段，也就是之前我说的，订单的详情，支付的详情，你都可以在这里加
 	Items         []*CreditItem `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -172,16 +173,15 @@ func (*CreditResponse) Descriptor() ([]byte, []int) {
 
 type CreditItem struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 在一些复杂的系统里面，用户可能有多个账号，还有虚拟账号，退款账号等乱七八糟的划分
+	// 记录哪一方收到了多少钱
+	// 怎么用字段表示每一方
+	// 平台账号你怎么表达？
 	Account int64 `protobuf:"varint,1,opt,name=account,proto3" json:"account,omitempty"`
-	// 账号类型
-	AccountType AccountType `protobuf:"varint,2,opt,name=account_type,json=accountType,proto3,enum=account.v1.AccountType" json:"account_type,omitempty"`
-	// 金额
-	Amt int64 `protobuf:"varint,3,opt,name=amt,proto3" json:"amt,omitempty"`
-	// 货币，正常来说它类似于支付，最开始就尽量把货币的问题纳入考虑范围
-	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	// 系统账号这个字段可能会没有
-	Uid           int64 `protobuf:"varint,5,opt,name=uid,proto3" json:"uid,omitempty"`
+	// 不同账号用在不同的场景里面，用一个 type 来表示会更好
+	AccountType   AccountType `protobuf:"varint,2,opt,name=account_type,json=accountType,proto3,enum=account.v1.AccountType" json:"account_type,omitempty"`
+	Amt           int64       `protobuf:"varint,3,opt,name=amt,proto3" json:"amt,omitempty"`
+	Currency      string      `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	Uid           int64       `protobuf:"varint,5,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

@@ -9,9 +9,10 @@ type AccountDAO interface {
 // Account 账号本体
 type Account struct {
 	Id int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
-	// 对应的用户的 ID，如果是系统账号
+	// 对应的用户的 ID，如果是系统账号，它是 0，或者你定义 sql.NullInt64
 	Uid int64 `gorm:"uniqueIndex:account_uid"`
-	// 账号 ID，这个才是对外使用的
+	// 账号 ID，这个才是对外使用的，有些情况下，这个字段会被设计成 string
+	// 123_RMB
 	Account int64 `gorm:"uniqueIndex:account_uid"`
 	// 一个人可能有很多账号，你在这里可以用于区分
 	Type uint8 `gorm:"uniqueIndex:account_uid"`
@@ -31,6 +32,12 @@ type Account struct {
 	Utime int64
 }
 
+//type AccountBalance struct {
+//	Aid int64
+//	Balance  int64
+//	Currency string
+//}
+
 type AccountActivity struct {
 	Id  int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	Uid int64 `gorm:"index:account_uid"`
@@ -45,6 +52,8 @@ type AccountActivity struct {
 	// 标记是增加还是减少，暂时我们还不需要
 	Amount   int64
 	Currency string
+
+	// Type Credit 代表 +，Debit 代表 -
 
 	Ctime int64
 	Utime int64

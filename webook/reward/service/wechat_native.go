@@ -28,12 +28,16 @@ func (s *WechatNativeRewardService) UpdateReward(ctx context.Context,
 		return err
 	}
 	// 完成了支付，准备入账
+	// 你已经支付成功了
 	if status == domain.RewardStatusPayed {
 		r, err := s.repo.GetReward(ctx, rid)
 		if err != nil {
 			return err
 		}
 		// webook 抽成
+		// 0.1 可以写到数据库里面
+		// 订单计算总价 + 分账
+		// 分账要小心精度问题
 		weAmt := int64(float64(r.Amt) * 0.1)
 		_, err = s.acli.Credit(ctx, &accountv1.CreditRequest{
 			Biz:   "reward",
@@ -59,6 +63,9 @@ func (s *WechatNativeRewardService) UpdateReward(ctx context.Context,
 				logger.String("biz_trade_no", bizTradeNO),
 				logger.Error(err.Error()))
 			// 做好监控和告警，这里
+			// 引入自动修复功能
+			// 如果没有 24小时值班 + 自动修复 + 异地容灾备份（随机演练）
+			// 然后面试官又吹牛逼说自己的可用性有 9999，你就可以认为，他在扯淡。
 			return err
 		}
 	}
@@ -129,11 +136,16 @@ func (s *WechatNativeRewardService) PreReward(ctx context.Context, r domain.Rewa
 	if err != nil {
 		return domain.CodeURL{}, err
 	}
+	// 我在这里记录分账信息
 	resp, err := s.client.NativePrePay(ctx, &pmtv1.PrePayRequest{
 		Amt: &pmtv1.Amount{
 			Total:    r.Amt,
 			Currency: "CNY",
 		},
+		//PayDetail: [
+		//{"account": "platform", amt: 100,}
+		//{"account": uid-123,, amt: 900}
+		//],
 		BizTradeNo:  fmt.Sprintf("reward-%d", rid),
 		Description: fmt.Sprintf("打赏-%s", r.Target.BizName),
 	})

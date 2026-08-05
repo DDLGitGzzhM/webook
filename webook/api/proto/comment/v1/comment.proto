@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package comment.v1;
+option go_package="webook/webook/api/proto/gen/comment/v1;commentv1";
+
+import "google/protobuf/timestamp.proto";
+
+
+service CommentService {
+  // GetCommentList Comment的id为0 获取一级评论
+  rpc GetCommentList (CommentListRequest) returns (CommentListResponse);
+
+  // DeleteComment 删除评论，删除本评论和其子评论
+  rpc DeleteComment (DeleteCommentRequest) returns (DeleteCommentResponse);
+
+  // CreateComment 创建评论
+  rpc CreateComment (CreateCommentRequest) returns (CreateCommentResponse);
+
+  // 直接评论和回复分开
+//  rpc CommentDirectly();
+//  rpc Reply();
+
+  rpc GetMoreReplies(GetMoreRepliesRequest) returns (GetMoreRepliesResponse);
+}
+
+// 安排评论时间排序，在使用自增主键的情况下，实际上就是按照主键大小排序，倒序
+//
+message CommentListRequest {
+  string biz = 1;
+  int64 bizid = 2;
+  int64 min_id = 3;
+  int64 limit = 4;
+}
+
+message CommentListResponse {
+  repeated Comment comments = 1;
+}
+
+message DeleteCommentRequest {
+  int64 id = 1;
+}
+
+message DeleteCommentResponse {
+}
+
+message CreateCommentRequest {
+  Comment comment = 1;
+}
+
+message CreateCommentResponse {
+}
+
+message GetMoreRepliesRequest {
+  int64 rid = 1;
+  int64 max_id = 2;
+  int64 limit = 3;
+}
+message GetMoreRepliesResponse {
+  repeated Comment replies = 1;
+}
+
+message Comment {
+  int64 id = 1;
+  int64 uid = 2;
+  string biz = 3;
+  int64 bizid = 4;
+  string content = 5;
+//  这里你可以考虑，只传入 id
+  Comment root_comment = 6;
+  // 只传入 id
+  Comment parent_comment = 7;
+  // 正常来说，你在时间传递上，如果不想用 int64 之类的
+  // 就可以考虑使用这个 Timestamp
+  google.protobuf.Timestamp ctime = 9;
+  google.protobuf.Timestamp utime = 10;
+}

@@ -31,5 +31,6 @@ func (a *accountRepository) AddCredit(ctx context.Context, c domain.Credit) erro
 			Utime:       now,
 		})
 	}
+	// 把它改成了记录账号变动活动，同时会去更新余额
 	return a.dao.AddActivities(ctx, activities...)
 }
