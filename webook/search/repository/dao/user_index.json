@@ -1,0 +1,18 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "email": {
+        "type": "keyword"
+      },
+      "phone": {
+        "type": "keyword"
+      },
+      "nickname": {
+        "type": "text"
+      }
+    }
+  }
+}
