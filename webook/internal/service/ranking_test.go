@@ -90,3 +90,31 @@ func TestRankingTopN(t *testing.T) {
 		})
 	}
 }
+
+type stubRankingRepo struct {
+	arts []domain.Article
+	err  error
+}
+
+func (s *stubRankingRepo) ReplaceTopN(ctx context.Context, arts []domain.Article) error {
+	s.arts = arts
+	return nil
+}
+
+func (s *stubRankingRepo) GetTopN(ctx context.Context) ([]domain.Article, error) {
+	return s.arts, s.err
+}
+
+func TestRankingGetTopN(t *testing.T) {
+	now := time.Now()
+	want := []domain.Article{
+		{Id: 3, Title: "t3", Utime: now, Ctime: now},
+		{Id: 2, Title: "t2", Utime: now, Ctime: now},
+	}
+	repo := &stubRankingRepo{arts: want}
+	svc := NewBatchRankingService(nil, repo, nil)
+
+	arts, err := svc.GetTopN(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, want, arts)
+}

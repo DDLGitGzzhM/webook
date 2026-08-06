@@ -102,6 +102,7 @@ func InitWebServer() *App {
 		web.NewUserHandler,
 		web.NewArticleHandler,
 		web.NewRewardHandler,
+		web.NewRankingHandler,
 		web.NewOAuth2WechatHandler,
 		ioc.InitWeChatService,
 		wire.Bind(new(logger.Logger), new(*logger.ZapLogger)),

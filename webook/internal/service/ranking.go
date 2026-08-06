@@ -15,9 +15,10 @@ import (
 )
 
 type RankingService interface {
+	// TopN 计算热榜并写入缓存
 	TopN(ctx context.Context) error
-	//TopN(ctx context.Context, n int64) error
-	//TopN(ctx context.Context, n int64) ([]domain.Article, error)
+	// GetTopN 从缓存读取热榜
+	GetTopN(ctx context.Context) ([]domain.Article, error)
 }
 
 type BatchRankingService struct {
@@ -49,17 +50,21 @@ func NewBatchRankingService(artSvc IArticleService,
 	}
 }
 
-// 准备分批
+// TopN 计算热榜并写入缓存。
 func (svc *BatchRankingService) TopN(ctx context.Context) error {
 	arts, err := svc.topN(ctx)
 	if err != nil {
 		return err
 	}
-	// 在这里，存起来
 	return svc.repo.ReplaceTopN(ctx, arts)
 }
 
-// topN 已经搞完了
+// GetTopN 从缓存读取热榜。
+func (svc *BatchRankingService) GetTopN(ctx context.Context) ([]domain.Article, error) {
+	return svc.repo.GetTopN(ctx)
+}
+
+// topN 分批计算热榜。
 func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error) {
 	// 我只取七天内的数据
 	now := time.Now()
@@ -143,13 +148,13 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 		// 这边要更新 offset
 		offset = offset + len(arts)
 	}
-	// 最后得出结果
+	// 最后得出结果；队列按分数升序出队，逆序写入即为从高到低
 	res := make([]domain.Article, svc.n)
 	for i := svc.n - 1; i >= 0; i-- {
 		val, err := topN.Dequeue()
 		if err != nil {
-			// 说明取完了，不够 n
-			break
+			// 取完了，不够 n，裁掉前面的空槽
+			return res[i+1:], nil
 		}
 		res[i] = val.art
 	}

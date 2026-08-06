@@ -26,6 +26,7 @@ func InitGin(
 	oauth *web.OAuth2WechatHandler,
 	article *web.ArticleHandler,
 	reward *web.RewardHandler,
+	ranking *web.RankingHandler,
 ) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdl...)
@@ -33,6 +34,7 @@ func InitGin(
 	oauth.RegisterRoutes(server)
 	article.RegisterRoutes(server)
 	reward.RegisterRoutes(server)
+	ranking.RegisterRoutes(server)
 	(&web.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
