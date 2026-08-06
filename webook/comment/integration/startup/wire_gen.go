@@ -7,6 +7,7 @@
 package startup
 
 import (
+	"github.com/google/wire"
 	"webook/webook/comment/grpc"
 	"webook/webook/comment/repository"
 	"webook/webook/comment/repository/dao"
@@ -19,9 +20,15 @@ import (
 func InitGRPCServer() *grpc.CommentServiceServer {
 	gormDB := InitTestDB()
 	commentDAO := dao.NewCommentDAO(gormDB)
-	loggerV1 := logger.NewNoOpLogger()
-	commentRepository := repository.NewCommentRepo(commentDAO, loggerV1)
+	loggerLogger := logger.NewNoOpLogger()
+	commentRepository := repository.NewCommentRepo(commentDAO, loggerLogger)
 	commentService := service.NewCommentSvc(commentRepository)
 	commentServiceServer := grpc.NewGrpcServer(commentService)
 	return commentServiceServer
 }
+
+// wire.go:
+
+var serviceProviderSet = wire.NewSet(dao.NewCommentDAO, repository.NewCommentRepo, service.NewCommentSvc, grpc.NewGrpcServer)
+
+var thirdProvider = wire.NewSet(logger.NewNoOpLogger, InitTestDB)

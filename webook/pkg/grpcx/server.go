@@ -16,14 +16,16 @@ import (
 
 type Server struct {
 	*grpc.Server
-	Port      int
-	EtcdAddrs []string
-	Name      string
-	L         logger.Logger
-	kaCancel  func()
-	em        endpoints.Manager
-	client    *etcdv3.Client
-	key       string
+	Port       int
+	EtcdAddrs  []string
+	EtcdClient *etcdv3.Client
+	EtcdTTL    int64
+	Name       string
+	L          logger.Logger
+	kaCancel   func()
+	em         endpoints.Manager
+	client     *etcdv3.Client
+	key        string
 }
 
 //func NewServer(client etcdv3.Client) {
@@ -45,11 +47,15 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) register() error {
-	client, err := etcdv3.New(etcdv3.Config{
-		Endpoints: s.EtcdAddrs,
-	})
-	if err != nil {
-		return err
+	client := s.EtcdClient
+	if client == nil {
+		var err error
+		client, err = etcdv3.New(etcdv3.Config{
+			Endpoints: s.EtcdAddrs,
+		})
+		if err != nil {
+			return err
+		}
 	}
 	s.client = client
 	// endpoint 以服务为维度。一个服务一个 Manager
@@ -63,7 +69,10 @@ func (s *Server) register() error {
 	s.key = key
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	// 你可以做成配置的
-	var ttl int64 = 30
+	ttl := s.EtcdTTL
+	if ttl <= 0 {
+		ttl = 30
+	}
 	leaseResp, err := client.Grant(ctx, ttl)
 	cancel()
 	if err != nil {

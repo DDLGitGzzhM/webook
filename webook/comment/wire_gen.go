@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/google/wire"
 	"webook/webook/comment/grpc"
 	"webook/webook/comment/ioc"
 	"webook/webook/comment/repository"
@@ -17,15 +18,22 @@ import (
 // Injectors from wire.go:
 
 func Init() *App {
-	logger := ioc.InitLogger()
 	db := ioc.InitDB()
 	commentDAO := dao.NewCommentDAO(db)
+	logger := ioc.InitLogger()
 	commentRepository := repository.NewCommentRepo(commentDAO, logger)
 	commentService := service.NewCommentSvc(commentRepository)
 	commentServiceServer := grpc.NewGrpcServer(commentService)
-	server := ioc.InitGRPCxServer(commentServiceServer, logger)
+	client := ioc.InitEtcdClient()
+	server := ioc.InitGRPCxServer(commentServiceServer, client, logger)
 	app := &App{
 		GRPCServer: server,
 	}
 	return app
 }
+
+// wire.go:
+
+var serviceProviderSet = wire.NewSet(dao.NewCommentDAO, repository.NewCommentRepo, service.NewCommentSvc, grpc.NewGrpcServer)
+
+var thirdProvider = wire.NewSet(ioc.InitLogger, ioc.InitDB, ioc.InitEtcdClient)
