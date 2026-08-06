@@ -27,10 +27,12 @@ func (a *articleRepository) SearchArticle(
 	uid int64,
 	keywords []string,
 ) ([]domain.Article, error) {
+	// 标签命中了的
 	ids, err := a.tags.Search(ctx, uid, "article", keywords)
 	if err != nil {
 		return nil, err
 	}
+	// 加一个 bizids 的输入，这个 bizid 是标签含有关键字的 biz_id
 	arts, err := a.dao.Search(ctx, ids, keywords)
 	if err != nil {
 		return nil, err

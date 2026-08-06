@@ -39,16 +39,19 @@ func (h *ArticleElasticDAO) Search(
 	keywords []string,
 ) ([]Article, error) {
 	queryString := strings.Join(keywords, " ")
-	ids := slice.Map(tagArtIds, func(idx int, src int64) any {
+	// 标签命中
+	tagArtIdAnys := slice.Map(tagArtIds, func(idx int, src int64) any {
 		return src
 	})
+	title := elastic.NewMatchQuery("title", queryString)
+	content := elastic.NewMatchQuery("content", queryString)
+	or := elastic.NewBoolQuery().Should(title, content)
+	if len(tagArtIds) > 0 {
+		tag := elastic.NewTermsQuery("id", tagArtIdAnys...).Boost(2.0)
+		or = or.Should(tag)
+	}
 	query := elastic.NewBoolQuery().Must(
-		elastic.NewBoolQuery().Should(
-			// 标签命中的文章给予更高权重
-			elastic.NewTermsQuery("id", ids...).Boost(2),
-			elastic.NewMatchQuery("title", queryString),
-			elastic.NewMatchQuery("content", queryString),
-		),
+		or,
 		elastic.NewTermQuery("status", 2),
 	)
 	resp, err := h.client.Search(ArticleIndexName).Query(query).Do(ctx)

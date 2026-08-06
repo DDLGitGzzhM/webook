@@ -3,8 +3,6 @@ package ioc
 import (
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
-
-	"webook/webook/search/events"
 )
 
 // InitKafka 初始化 Kafka 客户端。
@@ -26,15 +24,11 @@ func InitKafka() sarama.Client {
 	return client
 }
 
-// NewConsumers 注册所有 Kafka 消费者。
-func NewConsumers(
-	articleConsumer *events.ArticleConsumer,
-	userConsumer *events.UserConsumer,
-	syncDataConsumer *events.SyncDataEventConsumer,
-) []events.Consumer {
-	return []events.Consumer{
-		articleConsumer,
-		userConsumer,
-		syncDataConsumer,
+// InitSyncProducer 初始化 Kafka 同步生产者。
+func InitSyncProducer(client sarama.Client) sarama.SyncProducer {
+	res, err := sarama.NewSyncProducerFromClient(client)
+	if err != nil {
+		panic(err)
 	}
+	return res
 }

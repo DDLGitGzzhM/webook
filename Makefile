@@ -18,4 +18,5 @@ grpc:
 		webook/api/proto/comment/v1/comment.proto \
 		webook/api/proto/follow/v1/follow.proto \
 		webook/api/proto/search/v1/sync.proto \
-		webook/api/proto/search/v1/search.proto
+		webook/api/proto/search/v1/search.proto \
+		webook/api/proto/tag/v1/tag.proto

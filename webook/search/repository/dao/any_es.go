@@ -18,6 +18,7 @@ func NewAnyESDAO(client *elastic.Client) AnyDAO {
 
 // Input 向指定索引写入文档。
 func (a *AnyESDAO) Input(ctx context.Context, index, docId, data string) error {
+	// 直接整个 data 从 Kafka/grpc 里面一路透传到这里
 	_, err := a.client.Index().
 		Index(index).Id(docId).BodyString(data).Do(ctx)
 	return err

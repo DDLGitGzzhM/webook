@@ -1,0 +1,69 @@
+syntax = "proto3";
+package tag.v1;
+option go_package = "webook/webook/api/proto/gen/tag/v1;tagv1";
+
+message Tag {
+  int64 id = 1;
+  string name = 2;
+  // 谁的标签，如果是全局标签（或者系统标签）
+  // 这个字段是不需要的
+  // 层级标签，你可能需要一个 oid 的东西，比如说 oid = 1 代表 IT 技术部门
+  int64 uid = 3;
+}
+
+service TagService {
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse);
+  // 覆盖式的 API
+  // 也就是直接用新的 tag 全部覆盖掉已有的 tag
+  rpc AttachTags(AttachTagsRequest) returns (AttachTagsResponse);
+  // 我们可以预期，一个用户的标签不会有很多，所以没特别大的必要做成分页
+  rpc GetTags(GetTagsRequest) returns (GetTagsResponse);
+  // 某个人给某个资源打了什么标签
+  rpc GetBizTags(GetBizTagsRequest) returns (GetBizTagsResponse);
+}
+
+message AttachTagsRequest {
+  string biz = 1;
+  int64 biz_id = 2;
+  int64 uid = 3;
+  // 因为标签本身就是跟用户有关的，你这里还要不要传一个多余的 uid??
+  repeated int64 tids = 4;
+}
+
+message AttachTagsResponse {
+}
+
+message CreateTagRequest {
+  int64 uid = 1;
+  string name = 2;
+}
+
+message CreateTagResponse {
+  // 这里是返回一个 ID
+  // 你创建的这个标签的 ID
+  Tag tag = 1;
+}
+
+message GetTagsRequest {
+  // 按照用户的 id 来查找
+  // 要不要分页？
+  // 这个地方可以不分
+  // 个人用户的标签不会很多
+  int64 uid = 1;
+}
+
+message GetTagsResponse {
+  repeated Tag tag = 1;
+}
+
+message GetBizTagsRequest {
+  int64 uid = 1;
+  string biz = 2;
+  int64 biz_id = 3;
+  // 要不要分页？正常用户不会给一个资源打很多标签
+  // 以防万一，你可以只找 100 个
+}
+
+message GetBizTagsResponse {
+  repeated Tag tags = 1;
+}

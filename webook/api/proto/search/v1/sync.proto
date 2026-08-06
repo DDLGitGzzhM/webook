@@ -9,6 +9,8 @@ service SyncService {
   rpc InputUser (InputUserRequest) returns (InputUserResponse);
   rpc InputArticle (InputArticleRequest) returns (InputArticleResponse);
   rpc InputAny(InputAnyRequest) returns(InputAnyResponse);
+  // 同步标签
+  // rpc InputTags()
 }
 
 message InputAnyRequest {

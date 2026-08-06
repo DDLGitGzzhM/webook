@@ -34,6 +34,8 @@ func NewSyncService(
 }
 
 func (s *syncService) InputAny(ctx context.Context, index, docID, data string) error {
+	//cvt := s.converter(index)
+	//data = cvt.Convert(data)
 	return s.anyRepo.Input(ctx, index, docID, data)
 }
 

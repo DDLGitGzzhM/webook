@@ -33,9 +33,12 @@ func (t *TagESDAO) Search(
 	keywords []string,
 ) ([]int64, error) {
 	query := elastic.NewBoolQuery().Must(
-		elastic.NewTermsQuery("uid", uid),
-		elastic.NewTermsQueryFromStrings("tags", keywords...),
+		// 第一个条件，一定有 uid
+		elastic.NewTermQuery("uid", uid),
+		// 第二个条件，biz 一定符合预期
 		elastic.NewTermQuery("biz", biz),
+		// 第三个条件，关键字命中了标签
+		elastic.NewTermsQueryFromStrings("tags", keywords...),
 	)
 	resp, err := t.client.Search(TagIndexName).Query(query).Do(ctx)
 	if err != nil {
@@ -48,6 +51,7 @@ func (t *TagESDAO) Search(
 		if err != nil {
 			return nil, err
 		}
+		// 把 biz_id 拿出来了
 		res = append(res, ele.BizId)
 	}
 	return res, nil
