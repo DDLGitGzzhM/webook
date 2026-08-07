@@ -26,6 +26,10 @@ type ArticleRepository interface {
 	GetByID(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
+
+	// 加更新缓存的方法，强限制了所有的实现都必须有缓存
+	// SetPubCache()
+	//FindById(ctx context.Context, id int64) domain.Article
 }
 
 type CachedArticleRepository struct {
@@ -49,7 +53,7 @@ func (c *CachedArticleRepository) ListPub(
 		return nil, err
 	}
 	return lo.Map(res, func(src article.Article, _ int) domain.Article {
-		return c.toDomain(src)
+		return c.ToDomain(src)
 	}), nil
 }
 
@@ -83,7 +87,7 @@ func (c *CachedArticleRepository) GetByID(ctx context.Context, id int64) (domain
 	if err != nil {
 		return domain.Article{}, err
 	}
-	return c.toDomain(data), nil
+	return c.ToDomain(data), nil
 }
 
 func (c *CachedArticleRepository) List(
@@ -103,7 +107,7 @@ func (c *CachedArticleRepository) List(
 		return nil, err
 	}
 	data := lo.Map(res, func(src article.Article, _ int) domain.Article {
-		return c.toDomain(src)
+		return c.ToDomain(src)
 	})
 	go func() {
 		err := c.cache.SetFirstPage(ctx, uid, data)
@@ -115,7 +119,7 @@ func (c *CachedArticleRepository) List(
 	return data, nil
 }
 
-func (c *CachedArticleRepository) toDomain(art article.Article) domain.Article {
+func (c *CachedArticleRepository) ToDomain(art article.Article) domain.Article {
 	return domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
@@ -136,6 +140,10 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 		_ = c.cache.SetPub(ctx, art)
 	}
 	return id, err
+}
+
+func (c *CachedArticleRepository) Cache() cache.ArticleCache {
+	return c.cache
 }
 
 // SyncV2 同库不同表,使用事务操作

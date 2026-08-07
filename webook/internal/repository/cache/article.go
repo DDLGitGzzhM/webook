@@ -22,6 +22,7 @@ type ArticleCache interface {
 
 	// SetPub 创作者和读者的 Redis 集群通常要分开
 	SetPub(ctx context.Context, article domain.Article) error
+	DelPub(ctx context.Context, id int64) error
 	GetPub(ctx context.Context, id int64) (domain.Article, error)
 }
 
@@ -51,6 +52,10 @@ func (r *RedisArticleCache) SetPub(ctx context.Context, art domain.Article) erro
 		return err
 	}
 	return r.client.Set(ctx, r.readerArtKey(art.Id), data, time.Minute*30).Err()
+}
+
+func (r *RedisArticleCache) DelPub(ctx context.Context, id int64) error {
+	return r.client.Del(ctx, r.readerArtKey(id)).Err()
 }
 
 func (r *RedisArticleCache) Get(ctx context.Context, id int64) (domain.Article, error) {

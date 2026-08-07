@@ -1,8 +1,12 @@
 services:
   mysql8:
     image: mysql:8.0.29
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
+    command:
+#      - 加入参数，设置 binlog 和主节点
+      - --default_authentication_plugin=mysql_native_password
+      - --binlog-format=ROW
+      - --server-id=1
     environment:
       MYSQL_ROOT_PASSWORD: root
     volumes:
@@ -54,6 +58,8 @@ services:
       - '9094:9094'
     environment:
       - KAFKA_CFG_NODE_ID=0
+#      - 三个分区
+      - KAFKA_CREATE_TOPICS=webook_binlog:3:1
 #      - 允许自动创建 topic，线上不要开启
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
@@ -99,3 +105,20 @@ services:
       - i18n.locale=zh-CN
     ports:
       - "5601:5601"
+
+  canal:
+    image: canal/canal-server
+    environment:
+      - CANAL_IP=canal-server
+      - CANAL_PORT=11111
+      - CANAL_DESTINATIONS=example
+    depends_on:
+      - mysql8
+      - kafka
+    ports:
+#      - 暴露了 canal 的端口，但是其实一般比较少直接跟 canal 打交道
+      - 11111:11111
+    volumes:
+      - ./script/canal/webook/instance.properties:/home/admin/canal-server/conf/webook/instance.properties
+      - ./script/canal/canal.properties:/home/admin/canal-server/conf/canal.properties
+

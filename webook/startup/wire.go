@@ -55,6 +55,7 @@ func InitWebServer() *App {
 		ioc.InitRLockClient,
 		ioc.InitKafka,
 		ioc.NewSyncProducer,
+		ioc.InitMySQLBinlogConsumer,
 		ioc.NewConsumers,
 
 		article.NewKafkaProducer,

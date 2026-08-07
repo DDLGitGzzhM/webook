@@ -5,7 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 
+	ievents "webook/webook/interactive/events"
 	"webook/webook/internal/pkg/ginx"
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/internal/repository/dao"
@@ -31,6 +33,17 @@ func InitFixDataConsumer(l logger.Logger,
 
 func InitMigradatorProducer(p sarama.SyncProducer) events.Producer {
 	return events.NewSaramaProducer(p, topic)
+}
+
+func InitMySQLBinlogConsumer(
+	client sarama.Client,
+	l logger.Logger,
+	src SrcDB,
+	dst DstDB,
+	p events.Producer,
+) *ievents.MySQLBinlogConsumer[dao.Interactive] {
+	return ievents.NewMySQLBinlogConsumer[dao.Interactive](
+		client, l, "interactives", (*gorm.DB)(src), (*gorm.DB)(dst), p)
 }
 
 func InitMigratorWeb(

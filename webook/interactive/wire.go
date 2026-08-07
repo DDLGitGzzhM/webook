@@ -36,6 +36,7 @@ var migratorProvider = wire.NewSet(
 	ioc.InitMigratorWeb,
 	ioc.InitFixDataConsumer,
 	ioc.InitMigradatorProducer,
+	ioc.InitMySQLBinlogConsumer,
 )
 
 func InitAPP() *App {

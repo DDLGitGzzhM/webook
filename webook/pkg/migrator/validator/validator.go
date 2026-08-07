@@ -14,7 +14,7 @@ import (
 
 	"webook/webook/internal/pkg/logger"
 	"webook/webook/pkg/migrator"
-	"webook/webook/pkg/migrator/events"
+	events2 "webook/webook/pkg/migrator/events"
 )
 
 const (
@@ -27,15 +27,7 @@ const (
 
 // Validator T 必须实现了 Entity 接口
 type Validator[T migrator.Entity] struct {
-	// 校验，以 XXX 为准，
-	base *gorm.DB
-	// 校验的是谁的数据
-	target *gorm.DB
-	l      logger.Logger
-
-	p events.Producer
-
-	direction string
+	baseValidator
 
 	batchSize int
 
@@ -68,13 +60,15 @@ func NewValidator[T migrator.Entity](
 	target *gorm.DB,
 	direction string,
 	l logger.Logger,
-	p events.Producer) *Validator[T] {
+	p events2.Producer) *Validator[T] {
 	res := &Validator[T]{
-		base:                    base,
-		target:                  target,
-		l:                       l,
-		p:                       p,
-		direction:               direction,
+		baseValidator: baseValidator{
+			base:      base,
+			target:    target,
+			direction: direction,
+			l:         l,
+			producer:  p,
+		},
 		batchSize:               100,
 		highLoad:                atomicx.NewValueOf[bool](false),
 		highLoadBackoff:         defaultHighLoadBackoff,
@@ -276,11 +270,11 @@ func (v *Validator[T]) dstDiffV1(ctx context.Context, srcs []T) error {
 	for _, src := range srcs {
 		dst, ok := dstMap[src.ID()]
 		if !ok {
-			v.notify(ctx, src.ID(), events.InconsistentEventTypeTargetMissing)
+			v.notify(src.ID(), events2.InconsistentEventTypeTargetMissing)
 			continue
 		}
 		if !src.CompareTo(dst) {
-			v.notify(ctx, src.ID(), events.InconsistentEventTypeNEQ)
+			v.notify(src.ID(), events2.InconsistentEventTypeNEQ)
 		}
 	}
 	return nil
@@ -330,14 +324,14 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 				if !src.CompareTo(dst) {
 					// 不相等
 					// 这时候，我要干嘛？上报给 Kafka，就是告知数据不一致
-					v.notify(ctx, src.ID(),
-						events.InconsistentEventTypeNEQ)
+					v.notify(src.ID(),
+						events2.InconsistentEventTypeNEQ)
 				}
 
 			case gorm.ErrRecordNotFound:
 				// 这意味着，target 里面少了数据
-				v.notify(ctx, src.ID(),
-					events.InconsistentEventTypeTargetMissing)
+				v.notify(src.ID(),
+					events2.InconsistentEventTypeTargetMissing)
 			default:
 				// 这里，要不要汇报，数据不一致？
 				// 你有两种做法：
@@ -474,26 +468,8 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 	}
 }
 
-func (v *Validator[T]) notifyBaseMissing(ctx context.Context, ids []int64) {
+func (v *Validator[T]) notifyBaseMissing(_ context.Context, ids []int64) {
 	for _, id := range ids {
-		v.notify(ctx, id, events.InconsistentEventTypeBaseMissing)
-	}
-}
-
-func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	err := v.p.ProduceInconsistentEvent(ctx,
-		events.InconsistentEvent{
-			ID:        id,
-			Direction: v.direction,
-			Type:      typ,
-		})
-	cancel()
-	if err != nil {
-		// 这又是一个问题
-		// 怎么办？
-		// 你可以重试，但是重试也会失败，记日志，告警，手动去修
-		// 我直接忽略，下一轮修复和校验又会找出来
-		v.l.Error("发送数据不一致的消息失败", logger.Error(err.Error()))
+		v.notify(id, events2.InconsistentEventTypeBaseMissing)
 	}
 }

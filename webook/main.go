@@ -62,6 +62,7 @@ func main() {
 	ctx = app.Cron().Stop()
 	// 想办法 close ？？
 	// 这边可以考虑超时强制退出，防止有些任务，执行特别长的时间
+	// 这边就是退出之前 sleep 了一下
 	tm := time.NewTimer(time.Minute * 10)
 	select {
 	case <-tm.C:

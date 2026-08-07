@@ -35,9 +35,10 @@ func InitAPP() *App {
 	client := ioc.InitKafka()
 	interactiveReadEventBatchConsumer := article.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
 	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, client)
-	v := ioc.NewConsumers(interactiveReadEventBatchConsumer, consumer)
 	syncProducer := ioc.InitSyncProducer(client)
 	producer := ioc.InitMigradatorProducer(syncProducer)
+	mySQLBinlogConsumer := ioc.InitMySQLBinlogConsumer(client, logger, srcDB, dstDB, producer)
+	v := ioc.NewConsumers(interactiveReadEventBatchConsumer, consumer, mySQLBinlogConsumer)
 	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
 	app := &App{
 		server:    server,
@@ -53,4 +54,4 @@ var thirdPartySet = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.Ini
 
 var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)
 
-var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer)
+var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer, ioc.InitMySQLBinlogConsumer)

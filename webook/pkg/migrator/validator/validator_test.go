@@ -83,9 +83,11 @@ func TestIsMemHighLoad(t *testing.T) {
 func TestWaitIfHighLoad_Resume(t *testing.T) {
 	t.Parallel()
 	v := &Validator[testEntity]{
+		baseValidator: baseValidator{
+			l: logger.NopLogger{},
+		},
 		highLoad:        atomicx.NewValueOf(true),
 		highLoadBackoff: 10 * time.Millisecond,
-		l:               logger.NopLogger{},
 	}
 	go func() {
 		time.Sleep(30 * time.Millisecond)
@@ -97,9 +99,11 @@ func TestWaitIfHighLoad_Resume(t *testing.T) {
 func TestWaitIfHighLoad_Cancel(t *testing.T) {
 	t.Parallel()
 	v := &Validator[testEntity]{
+		baseValidator: baseValidator{
+			l: logger.NopLogger{},
+		},
 		highLoad:        atomicx.NewValueOf(true),
 		highLoadBackoff: time.Second,
-		l:               logger.NopLogger{},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -112,10 +116,12 @@ func TestWaitIfHighLoad_Cancel(t *testing.T) {
 func TestMonitorLoad_StopsOnCancel(t *testing.T) {
 	t.Parallel()
 	v := &Validator[testEntity]{
-		highLoad:          atomicx.NewValueOf(false),
-		loadCheckInterval: 20 * time.Millisecond,
+		baseValidator: baseValidator{
+			l: logger.NopLogger{},
+		},
+		highLoad:           atomicx.NewValueOf(false),
+		loadCheckInterval:  20 * time.Millisecond,
 		heapAllocThreshold: 1, // 几乎必然触发内存高负载
-		l:                 logger.NopLogger{},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})

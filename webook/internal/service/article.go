@@ -45,12 +45,44 @@ func NewArticleService(
 	l logger.Logger,
 	producer events.Producer,
 ) IArticleService {
-	return &ArticleService{
+	res := &ArticleService{
 		repo:     repo,
 		producer: producer,
 		l:        l,
 		//ch:       make(chan readInfo, 10),
 	}
+	return res
+}
+
+// ctx, cancel := context.WithCancel(context.Background())
+// NewArticleServiceV3(ctx)
+// 这里一大堆业务逻辑
+// 主程序（main 函数准备退出）
+// cancel()
+func NewArticleServiceV3(
+	ctx context.Context,
+	repo article.ArticleRepository,
+	l logger.Logger,
+	producer events.Producer,
+) IArticleService {
+	res := &ArticleService{
+		repo:     repo,
+		producer: producer,
+		l:        l,
+		ch:       make(chan readInfo, 10),
+	}
+	go func() {
+		// 我系统关闭的时候，你 channel 里面还有数据，没发出去，怎么办？
+		// 第一种是啥也不干，你在关闭的时候，time.Sleep
+		// 第二种
+		res.batchSendReadInfo(ctx)
+	}()
+	return res
+}
+
+func (a *ArticleService) Close() error {
+	close(a.ch)
+	return nil
 }
 
 func NewArticleServiceV2(
@@ -106,11 +138,68 @@ func NewArticleServiceV1(
 	}
 }
 
-func (a ArticleService) GetPublishedById(
+// GetPublishedByIdV1 批量发送的例子
+func (a *ArticleService) GetPublishedByIdV1(
 	ctx context.Context, id, uid int64,
 ) (domain.Article, error) {
 	art, err := a.repo.GetPublishedById(ctx, id)
 	if err == nil {
+		go func() {
+			// 改批量的做法
+			a.ch <- readInfo{
+				aid: id,
+				uid: uid,
+			}
+		}()
+	}
+	return art, err
+}
+
+func (a *ArticleService) batchSendReadInfo(ctx context.Context) {
+	// 10 个一批
+	// 单个转批量都要考虑的兜底问题
+	for {
+		timeoutCtx, cancel := context.WithTimeout(ctx, time.Second)
+		const batchSize = 10
+		uids := make([]int64, 0, 10)
+		aids := make([]int64, 0, 10)
+		send := false
+		for !send {
+			select {
+			// 这边是超时了
+			case <-timeoutCtx.Done():
+				// 也要执行发送
+				send = true
+			case info, ok := <-a.ch:
+				if !ok {
+					cancel()
+					send = true
+					continue
+				}
+				uids = append(uids, info.uid)
+				aids = append(aids, info.aid)
+				// 凑够了
+				if len(uids) == batchSize {
+					send = true
+				}
+			}
+		}
+		// 装满了，凑够了一批
+		a.producer.ProduceReadEventV1(context.Background(),
+			events.ReadEventV1{
+				Uids: uids,
+				Aids: aids,
+			})
+		cancel()
+	}
+}
+
+func (a *ArticleService) GetPublishedById(
+	ctx context.Context, id, uid int64,
+) (domain.Article, error) {
+	art, err := a.repo.GetPublishedById(ctx, id)
+	if err == nil {
+		// 每次打开一篇文章，就发一条消息
 		go func() {
 			// 生产者也可以通过改批量来提高性能
 			er := a.producer.ProduceReadEvent(
@@ -130,15 +219,13 @@ func (a ArticleService) GetPublishedById(
 			}
 		}()
 
-		// 改批量的做法（NewArticleServiceV2 才会初始化 ch）
-		if a.ch != nil {
-			go func() {
-				a.ch <- readInfo{
-					aid: id,
-					uid: uid,
-				}
-			}()
-		}
+		//go func() {
+		//	// 改批量的做法
+		//	a.ch <- readInfo{
+		//		aid: id,
+		//		uid: uid,
+		//	}
+		//}()
 	}
 	return art, err
 }
