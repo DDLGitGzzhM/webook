@@ -10,23 +10,16 @@ type FeedPushEventDAO interface {
 	// CreatePushEvents 创建推送事件
 	CreatePushEvents(ctx context.Context, events []FeedPushEvent) error
 	GetPushEvents(ctx context.Context, uid int64, timestamp, limit int64) ([]FeedPushEvent, error)
+	GetPushEventsWithTyp(ctx context.Context, typ string, uid int64, timestamp, limit int64) ([]FeedPushEvent, error)
 }
 
-// FeedPushEvent 写扩散，推模型，收件箱
-// 这个表理论上是只插入，不更新，也不删除的
-// 但是可以归档
 type FeedPushEvent struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
-	// 收件人
-	UID int64 `gorm:"index"`
-	// Type 用来标记是什么类型的事件
-	// 这边决定了 Content 怎么解读
-	Type string
-	// 大的 json 串
-	Content string
-	Ctime   int64 `gorm:"index"`
-	// 这个表理论上来说，是没有 Update 操作的
-	Utime int64
+	Id      int64  `gorm:"primaryKey,autoIncrement"`
+	UID     int64  `gorm:"column:uid;type:int(11);not null;"`
+	Type    string `gorm:"column:type;type:varchar(255);comment:类型"`
+	Content string `gorm:"column:content;type:text;"`
+	// 发生时间
+	Ctime int64 `gorm:"column:ctime;comment:发生时间"`
 }
 
 type feedPushEventDAO struct {
@@ -39,10 +32,29 @@ func NewFeedPushEventDAO(db *gorm.DB) FeedPushEventDAO {
 	}
 }
 
+func (f *feedPushEventDAO) GetPushEventsWithTyp(ctx context.Context, typ string, uid int64, timestamp, limit int64) ([]FeedPushEvent, error) {
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Where("type = ?", typ).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
+}
+
 func (f *feedPushEventDAO) CreatePushEvents(ctx context.Context, events []FeedPushEvent) error {
-	return f.db.WithContext(ctx).Create(&events).Error
+	return f.db.WithContext(ctx).Create(events).Error
 }
 
 func (f *feedPushEventDAO) GetPushEvents(ctx context.Context, uid int64, timestamp, limit int64) ([]FeedPushEvent, error) {
-	panic("implement me")
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
 }

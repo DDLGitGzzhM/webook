@@ -41,6 +41,9 @@ services:
     ports:
 #      - 访问数据的端口
       - 9090:9090
+    command:
+      - "--web.enable-remote-write-receiver"
+      - "--config.file=/etc/prometheus/prometheus.yml"
   grafana:
     image: grafana/grafana-enterprise:10.2.0
     ports:

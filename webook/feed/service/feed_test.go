@@ -33,6 +33,14 @@ func (f *fakeFeedRepo) FindPushEvents(ctx context.Context, uid, timestamp, limit
 	return nil, nil
 }
 
+func (f *fakeFeedRepo) FindPullEventsWithTyp(ctx context.Context, typ string, uids []int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	return nil, nil
+}
+
+func (f *fakeFeedRepo) FindPushEventsWithTyp(ctx context.Context, typ string, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	return nil, nil
+}
+
 func TestLikeEventHandler_CreateFeedEvent(t *testing.T) {
 	repo := &fakeFeedRepo{}
 	hdl := NewLikeEventHandler(repo)

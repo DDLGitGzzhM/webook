@@ -10,23 +10,16 @@ import (
 type FeedPullEventDAO interface {
 	CreatePullEvent(ctx context.Context, event FeedPullEvent) error
 	FindPullEventList(ctx context.Context, uids []int64, timestamp, limit int64) ([]FeedPullEvent, error)
+	FindPullEventListWithTyp(ctx context.Context, typ string, uids []int64, timestamp, limit int64) ([]FeedPullEvent, error)
 }
 
-// FeedPullEvent 拉模型
-// 目前我们的业务里面没明显区别
-// 在实践中很可能会有区别
 type FeedPullEvent struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
-	// 发件人
-	UID int64 `gorm:"index"`
-	// Type 用来标记是什么类型的事件
-	// 这边决定了 Content 怎么解读
-	Type string
-	// 大的 json 串
-	Content string
-	Ctime   int64 `gorm:"index"`
-	// 这个表理论上来说，是没有 Update 操作的
-	Utime int64
+	Id      int64  `gorm:"primaryKey,autoIncrement"`
+	UID     int64  `gorm:"column:uid;type:int(11);not null;"`
+	Type    string `gorm:"column:type;type:varchar(255);comment:类型"`
+	Content string `gorm:"column:content;type:text;"`
+	// 发生时间
+	Ctime int64 `gorm:"column:ctime;comment:发生时间"`
 }
 
 type feedPullEventDAO struct {
@@ -39,10 +32,29 @@ func NewFeedPullEventDAO(db *gorm.DB) FeedPullEventDAO {
 	}
 }
 
+func (f *feedPullEventDAO) FindPullEventListWithTyp(ctx context.Context, typ string, uids []int64, timestamp, limit int64) ([]FeedPullEvent, error) {
+	var events []FeedPullEvent
+	err := f.db.WithContext(ctx).
+		Where("uid in ?", uids).
+		Where("ctime < ?", timestamp).
+		Where("type = ?", typ).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
+}
+
 func (f *feedPullEventDAO) CreatePullEvent(ctx context.Context, event FeedPullEvent) error {
 	return f.db.WithContext(ctx).Create(&event).Error
 }
 
 func (f *feedPullEventDAO) FindPullEventList(ctx context.Context, uids []int64, timestamp, limit int64) ([]FeedPullEvent, error) {
-	panic("implement me")
+	var events []FeedPullEvent
+	err := f.db.WithContext(ctx).
+		Where("uid in ?", uids).
+		Where("ctime < ?", timestamp).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
 }

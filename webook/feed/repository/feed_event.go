@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"webook/webook/feed/domain"
@@ -21,26 +22,84 @@ type FeedEventRepo interface {
 	FindPullEvents(ctx context.Context, uids []int64, timestamp, limit int64) ([]domain.FeedEvent, error)
 	// FindPushEvents 获取推事件，也就是自己收件箱里面的事件
 	FindPushEvents(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error)
+	// FindPullEventsWithTyp 获取某个类型的拉事件
+	FindPullEventsWithTyp(ctx context.Context, typ string, uids []int64, timestamp, limit int64) ([]domain.FeedEvent, error)
+	// FindPushEventsWithTyp 获取某个类型的推事件
+	FindPushEventsWithTyp(ctx context.Context, typ string, uid, timestamp, limit int64) ([]domain.FeedEvent, error)
 }
 
 type feedEventRepo struct {
-	pullDao dao.FeedPullEventDAO
-	pushDao dao.FeedPushEventDAO
+	pullDao   dao.FeedPullEventDAO
+	pushDao   dao.FeedPushEventDAO
+	feedCache cache.FeedEventCache
 }
 
 func NewFeedEventRepo(pullDao dao.FeedPullEventDAO, pushDao dao.FeedPushEventDAO, feedCache cache.FeedEventCache) FeedEventRepo {
 	return &feedEventRepo{
-		pullDao: pullDao,
-		pushDao: pushDao,
+		pullDao:   pullDao,
+		pushDao:   pushDao,
+		feedCache: feedCache,
 	}
 }
 
+func (f *feedEventRepo) FindPullEventsWithTyp(ctx context.Context, typ string, uids []int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	events, err := f.pullDao.FindPullEventListWithTyp(ctx, typ, uids, timestamp, limit)
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]domain.FeedEvent, 0, len(events))
+	for _, e := range events {
+		ans = append(ans, convertToPullEventDomain(e))
+	}
+	return ans, nil
+}
+
+func (f *feedEventRepo) FindPushEventsWithTyp(ctx context.Context, typ string, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	events, err := f.pushDao.GetPushEventsWithTyp(ctx, typ, uid, timestamp, limit)
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]domain.FeedEvent, 0, len(events))
+	for _, e := range events {
+		ans = append(ans, convertToPushEventDomain(e))
+	}
+	return ans, nil
+}
+
+func (f *feedEventRepo) SetFollowees(ctx context.Context, follower int64, followees []int64) error {
+	return f.feedCache.SetFollowees(ctx, follower, followees)
+}
+
+func (f *feedEventRepo) GetFollowees(ctx context.Context, follower int64) ([]int64, error) {
+	followees, err := f.feedCache.GetFollowees(ctx, follower)
+	if errors.Is(err, cache.FolloweesNotFound) {
+		return nil, FolloweesNotFound
+	}
+	return followees, err
+}
+
 func (f *feedEventRepo) FindPullEvents(ctx context.Context, uids []int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
-	panic("implement me")
+	events, err := f.pullDao.FindPullEventList(ctx, uids, timestamp, limit)
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]domain.FeedEvent, 0, len(events))
+	for _, e := range events {
+		ans = append(ans, convertToPullEventDomain(e))
+	}
+	return ans, nil
 }
 
 func (f *feedEventRepo) FindPushEvents(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
-	panic("implement me")
+	events, err := f.pushDao.GetPushEvents(ctx, uid, timestamp, limit)
+	if err != nil {
+		return nil, err
+	}
+	ans := make([]domain.FeedEvent, 0, len(events))
+	for _, e := range events {
+		ans = append(ans, convertToPushEventDomain(e))
+	}
+	return ans, nil
 }
 
 func (f *feedEventRepo) CreatePushEvents(ctx context.Context, events []domain.FeedEvent) error {
@@ -75,7 +134,6 @@ func convertToPullEventDao(event domain.FeedEvent) dao.FeedPullEvent {
 		Content: string(val),
 		Ctime:   event.Ctime.Unix(),
 	}
-
 }
 
 func convertToPushEventDomain(event dao.FeedPushEvent) domain.FeedEvent {
