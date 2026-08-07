@@ -41,6 +41,27 @@ func (t *TableStoreFollowRelationDao) FollowRelationList(ctx context.Context, fo
 	return followRelations, nil
 }
 
+func (t *TableStoreFollowRelationDao) FollowerRelationList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error) {
+	request := &tablestore.SQLQueryRequest{
+		Query: fmt.Sprintf("select id,follower,followee from %s where followee = %d AND status = %d OFFSET %d LIMIT %d",
+			FollowRelationTableName, followee, FollowRelationStatusActive, offset, limit)}
+	response, err := t.client.SQLQuery(request)
+	if err != nil {
+		return nil, err
+	}
+	resultSet := response.ResultSet
+	followRelations := make([]FollowRelation, 0, limit)
+	for resultSet.HasNext() {
+		row := resultSet.Next()
+		followRelation := FollowRelation{}
+		followRelation.ID, _ = row.GetInt64ByName("id")
+		followRelation.Follower, _ = row.GetInt64ByName("follower")
+		followRelation.Followee, _ = row.GetInt64ByName("followee")
+		followRelations = append(followRelations, followRelation)
+	}
+	return followRelations, nil
+}
+
 func (t *TableStoreFollowRelationDao) UpdateStatus(ctx context.Context, followee int64, follower int64, status uint8) error {
 	cond := tablestore.NewCompositeColumnCondition(tablestore.LO_AND)
 	cond.AddFilter(tablestore.NewSingleColumnCondition("follower", tablestore.CT_EQUAL, follower))

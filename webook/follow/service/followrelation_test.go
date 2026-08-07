@@ -25,6 +25,10 @@ func (f *fakeFollowRepo) GetFollowee(ctx context.Context, follower, offset, limi
 	return f.followees, nil
 }
 
+func (f *fakeFollowRepo) GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error) {
+	return f.followees, nil
+}
+
 func (f *fakeFollowRepo) FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error) {
 	return f.info, f.infoErr
 }

@@ -13,6 +13,8 @@ import (
 type FollowRepository interface {
 	// GetFollowee 获取某人的关注列表
 	GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error)
+	// GetFollower 获取某人的粉丝列表
+	GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error)
 	// FollowInfo 查看关注人的详情
 	FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error)
 	// AddFollowRelation 创建关注关系
@@ -65,6 +67,14 @@ func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, of
 	// 你要做缓存，撑死了就是缓存第一页
 	// 缓存命中率贼低
 	followerList, err := d.dao.FollowRelationList(ctx, follower, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return d.genFollowRelationList(followerList), nil
+}
+
+func (d *CachedRelationRepository) GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error) {
+	followerList, err := d.dao.FollowerRelationList(ctx, followee, offset, limit)
 	if err != nil {
 		return nil, err
 	}

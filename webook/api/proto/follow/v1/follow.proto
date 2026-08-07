@@ -10,6 +10,13 @@ message FollowRelation {
   int64 followee = 3;
 }
 
+message FollowStatic {
+  // 被多少人关注
+  int64 followers =  1;
+  // 自己关注了多少人
+  int64 followees = 2;
+}
+
 service FollowService {
   // 增删
   rpc Follow (FollowRequest) returns (FollowResponse);
@@ -21,6 +28,17 @@ service FollowService {
   rpc GetFollowee (GetFolloweeRequest) returns (GetFolloweeResponse);
   // 获得某个人关注另外一个人的详细信息
   rpc FollowInfo (FollowInfoRequest) returns (FollowInfoResponse);
+  // 获取某人的粉丝列表
+  rpc GetFollower (GetFollowerRequest)returns(GetFollowerResponse );
+  // 获取默认的关注人数
+  rpc GetFollowStatic(GetFollowStaticRequest)returns(GetFollowStaticResponse);
+}
+message GetFollowStaticRequest{
+    int64 followee = 1;
+}
+
+message GetFollowStaticResponse{
+  FollowStatic followStatic = 1;
 }
 
 message GetFolloweeRequest {
@@ -74,4 +92,12 @@ message CancelFollowRequest {
 }
 
 message CancelFollowResponse {
+}
+
+
+message GetFollowerRequest {
+  int64 followee = 1;
+}
+message    GetFollowerResponse {
+  repeated FollowRelation follow_relations = 1;
 }

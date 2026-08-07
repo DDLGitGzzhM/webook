@@ -50,6 +50,16 @@ func (g *GORMFollowRelationDAO) FollowRelationList(ctx context.Context,
 	return res, err
 }
 
+func (g *GORMFollowRelationDAO) FollowerRelationList(ctx context.Context,
+	followee, offset, limit int64) ([]FollowRelation, error) {
+	var res []FollowRelation
+	err := g.db.WithContext(ctx).
+		Where("followee = ? AND status = ?", followee, FollowRelationStatusActive).
+		Offset(int(offset)).Limit(int(limit)).
+		Find(&res).Error
+	return res, err
+}
+
 func (g *GORMFollowRelationDAO) FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error) {
 	var res FollowRelation
 	err := g.db.WithContext(ctx).Where("follower = ? AND followee = ? AND status = ?",

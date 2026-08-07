@@ -62,6 +62,34 @@ func (f *FollowServiceServer) CancelFollow(ctx context.Context, request *followv
 	return &followv1.CancelFollowResponse{}, err
 }
 
+func (f *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
+	// 写扩散场景粉丝数通常不大，这里一次性拉取
+	relationList, err := f.svc.GetFollower(ctx, request.Followee, 0, 10000)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*followv1.FollowRelation, 0, len(relationList))
+	for _, relation := range relationList {
+		res = append(res, f.convertToView(relation))
+	}
+	return &followv1.GetFollowerResponse{
+		FollowRelations: res,
+	}, nil
+}
+
+func (f *FollowServiceServer) GetFollowStatic(ctx context.Context, request *followv1.GetFollowStaticRequest) (*followv1.GetFollowStaticResponse, error) {
+	static, err := f.svc.GetFollowStatic(ctx, request.Followee)
+	if err != nil {
+		return nil, err
+	}
+	return &followv1.GetFollowStaticResponse{
+		FollowStatic: &followv1.FollowStatic{
+			Followers: static.Followers,
+			Followees: static.Followees,
+		},
+	}, nil
+}
+
 func (f *FollowServiceServer) convertToView(relation domain.FollowRelation) *followv1.FollowRelation {
 	return &followv1.FollowRelation{
 		Followee: relation.Followee,

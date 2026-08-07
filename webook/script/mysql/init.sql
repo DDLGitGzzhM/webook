@@ -7,6 +7,8 @@ create database webook_account;
 create database webook_reward;
 create database webook_comment;
 create database webook_tag;
+create database webook_follow;
+create database webook_feed;
 
 # 准备 canal 用户
 CREATE USER 'canal'@'%' IDENTIFIED BY 'canal';

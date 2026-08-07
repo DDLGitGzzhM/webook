@@ -1,0 +1,23 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/webook_feed"
+
+redis:
+  addr: "localhost:6379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+grpc:
+  server:
+    port: 8096
+    etcdAddrs:
+      - "localhost:12379"
+    etcdTTL: 60
+  client:
+    follow:
+      target: "etcd:///service/follow"
